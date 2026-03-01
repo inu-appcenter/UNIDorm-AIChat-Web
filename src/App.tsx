@@ -2,6 +2,9 @@ import React, { useState, useRef, useEffect } from 'react';
 import styled, { createGlobalStyle } from 'styled-components';
 import { MessageSquare, Plus, Send, Menu, PanelLeftClose } from 'lucide-react';
 
+// 백엔드 API 주소 설정 (실제 IP로 변경하세요)
+const API_URL = import.meta.env.VITE_API_BASE_URL;
+
 // 전역 스타일
 const GlobalStyle = createGlobalStyle`
     html, body {
@@ -11,6 +14,8 @@ const GlobalStyle = createGlobalStyle`
         height: 100%;
         overflow: hidden;
         background-color: #f7f9fc;
+        /* iOS 사파리 스크롤 바운스 현상 방지 */
+        overscroll-behavior-y: none; 
     }
     * {
         box-sizing: border-box;
@@ -32,22 +37,24 @@ interface ChatMessage {
     content: string;
 }
 
-// 방 타입
 interface ChatRoom {
     id: string;
     title: string;
     messages: ChatMessage[];
 }
 
-// 전체 레이아웃
+// 전체 레이아웃 (모바일 잘림 현상 해결을 위해 position: fixed 적용 및 100dvh 사용)
 const AppContainer = styled.div`
     display: flex;
-    height: 100vh;
-    width: 100vw;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 100dvh;
+    background: linear-gradient(135deg, #e2eafc 0%, #edf2f7 50%, #fcebb6 100%);
     font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif;
     overflow: hidden;
-    position: relative;
-    background-color: #fafbfc;
 `;
 
 // 오버레이 (사이드바 외부 터치)
@@ -294,10 +301,10 @@ const MessageBubble = styled.div<{ $isUser: boolean }>`
     }
 `;
 
-// 플로팅 입력 컨테이너
+// 플로팅 입력 컨테이너 (아이폰 홈 인디케이터 여백 고려)
 const InputWrapper = styled.div`
     position: absolute;
-    bottom: 20px;
+    bottom: max(20px, env(safe-area-inset-bottom));
     left: 50%;
     transform: translateX(-50%);
     width: calc(100% - 40px);
@@ -362,8 +369,6 @@ const SendButton = styled.button<{ $isActive: boolean }>`
 
 // 메인 컴포넌트
 export default function App() {
-    const API_URL = import.meta.env.VITE_API_BASE_URL;
-
     // 상태 관리
     const [rooms, setRooms] = useState<ChatRoom[]>([
         { id: Date.now().toString(), title: '새로운 대화', messages: [] }
@@ -442,10 +447,9 @@ export default function App() {
         if (textareaRef.current) textareaRef.current.style.height = 'auto';
         setIsLoading(true);
 
-
         try {
-            // 백엔드 통신
-                const response = await fetch(`${API_URL}/chat`, {                
+            // 백엔드 통신 (API_URL 변수 사용)
+            const response = await fetch(`${API_URL}/chat`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({

@@ -243,14 +243,16 @@ export const Sidebar: React.FC<SidebarProps> = ({
             ) : (
               <>
                 <RoomTitle>{room.title}</RoomTitle>
-                <ActionButtons className="room-actions">
-                  <IconButton onClick={(e) => startEdit(e, room.id, room.title)}>
-                    <Edit2 size={14} />
-                  </IconButton>
-                  <IconButton onClick={(e) => handleDelete(e, room.id)}>
-                    <Trash2 size={14} color="#ff4d4f" />
-                  </IconButton>
-                </ActionButtons>
+                {room.messages.length > 0 && (
+                  <ActionButtons className="room-actions">
+                    <IconButton onClick={(e) => startEdit(e, room.id, room.title)}>
+                      <Edit2 size={14} />
+                    </IconButton>
+                    <IconButton onClick={(e) => handleDelete(e, room.id)}>
+                      <Trash2 size={14} color="#ff4d4f" />
+                    </IconButton>
+                  </ActionButtons>
+                )}
               </>
             )}
           </RoomItem>

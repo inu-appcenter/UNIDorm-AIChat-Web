@@ -207,7 +207,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
     if (isUser) {
         // 사용자 메시지는 마크다운을 적용하지 않고 텍스트로 처리하되 링크만 수동 연결
         // (필요 시 사용자 메시지도 마크다운을 적용하려면 아래 AI 로직과 통일 가능)
-        const parts: (string | JSX.Element)[] = [];
+        const parts: (string | React.JSX.Element)[] = [];
         let lastIndex = 0;
         let match;
         const regex = new RegExp(COMBINED_LINK_REGEX);

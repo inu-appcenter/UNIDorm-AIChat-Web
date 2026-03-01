@@ -222,7 +222,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             $isActive={room.id === currentRoomId}
             onClick={() => onSelectRoom(room.id)}
           >
-            <MessageSquare size={16} flexShrink={0} />
+            <MessageSquare size={16} />
             
             {editingId === room.id ? (
               <>

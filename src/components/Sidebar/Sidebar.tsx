@@ -1,6 +1,6 @@
-import React from "react";
+import React, { useState, useRef, useEffect } from "react";
 import styled from "styled-components";
-import { MessageSquare, Plus, Trash2 } from "lucide-react";
+import { MessageSquare, Plus, Trash2, Edit2, Check, X } from "lucide-react";
 import { COLORS } from "../../constants/colors";
 import type { ChatRoom } from "../../types/chat";
 
@@ -62,8 +62,8 @@ const RoomList = styled.div`
 const RoomItem = styled.div<{ $isActive: boolean }>`
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 14px 16px;
+  gap: 10px;
+  padding: 12px 14px;
   border-radius: 16px;
   cursor: pointer;
   font-size: 14px;
@@ -71,11 +71,59 @@ const RoomItem = styled.div<{ $isActive: boolean }>`
   color: ${(props) => (props.$isActive ? COLORS.inuBlue : COLORS.textMuted)};
   background-color: ${(props) => (props.$isActive ? "#f0f4fa" : "transparent")};
   transition: background-color 0.2s ease;
+  
+  &:hover {
+    background-color: #f0f4fa;
+    .room-actions {
+      opacity: 1;
+    }
+  }
+`;
+
+const RoomTitle = styled.span`
+  flex: 1;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+`;
+
+const RoomInput = styled.input`
+  flex: 1;
+  border: none;
+  background: transparent;
+  font-size: 14px;
+  font-family: inherit;
+  color: inherit;
+  outline: none;
+  border-bottom: 1px solid ${COLORS.inuBlue};
+  padding: 2px 0;
+`;
+
+const ActionButtons = styled.div`
+  display: flex;
+  gap: 6px;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  
+  /* 모바일에서는 항상 보이도록 */
+  @media (max-width: 768px) {
+    opacity: 1;
+  }
+`;
+
+const IconButton = styled.button`
+  background: none;
+  border: none;
+  padding: 4px;
+  cursor: pointer;
+  color: #999;
+  display: flex;
+  align-items: center;
+  border-radius: 6px;
+  
   &:hover {
-    background-color: #f0f4fa;
+    color: ${COLORS.textDark};
+    background-color: rgba(0,0,0,0.05);
   }
 `;
 
@@ -111,6 +159,8 @@ interface SidebarProps {
   onSelectRoom: (id: string) => void;
   onNewChat: () => void;
   onClearHistory: () => void;
+  onDeleteRoom: (id: string) => void;
+  onUpdateRoomTitle: (id: string, title: string) => void;
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({
@@ -120,7 +170,45 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onSelectRoom,
   onNewChat,
   onClearHistory,
+  onDeleteRoom,
+  onUpdateRoomTitle,
 }) => {
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editTitle, setEditTitle] = useState("");
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (editingId && inputRef.current) {
+      inputRef.current.focus();
+    }
+  }, [editingId]);
+
+  const startEdit = (e: React.MouseEvent, id: string, currentTitle: string) => {
+    e.stopPropagation();
+    setEditingId(id);
+    setEditTitle(currentTitle);
+  };
+
+  const saveEdit = (e: React.MouseEvent | React.KeyboardEvent, id: string) => {
+    e.stopPropagation();
+    if (editTitle.trim()) {
+      onUpdateRoomTitle(id, editTitle);
+    }
+    setEditingId(null);
+  };
+
+  const cancelEdit = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setEditingId(null);
+  };
+
+  const handleDelete = (e: React.MouseEvent, id: string) => {
+    e.stopPropagation();
+    if (window.confirm("이 대화방을 삭제하시겠습니까?")) {
+      onDeleteRoom(id);
+    }
+  };
+
   return (
     <SidebarContainer $isOpen={isOpen}>
       <NewChatButton onClick={onNewChat}>
@@ -134,15 +222,44 @@ export const Sidebar: React.FC<SidebarProps> = ({
             $isActive={room.id === currentRoomId}
             onClick={() => onSelectRoom(room.id)}
           >
-            <MessageSquare size={16} />
-            {room.title}
+            <MessageSquare size={16} flexShrink={0} />
+            
+            {editingId === room.id ? (
+              <>
+                <RoomInput
+                  ref={inputRef}
+                  value={editTitle}
+                  onChange={(e) => setEditTitle(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && saveEdit(e, room.id)}
+                  onClick={(e) => e.stopPropagation()}
+                />
+                <IconButton onClick={(e) => saveEdit(e, room.id)}>
+                  <Check size={14} />
+                </IconButton>
+                <IconButton onClick={cancelEdit}>
+                  <X size={14} />
+                </IconButton>
+              </>
+            ) : (
+              <>
+                <RoomTitle>{room.title}</RoomTitle>
+                <ActionButtons className="room-actions">
+                  <IconButton onClick={(e) => startEdit(e, room.id, room.title)}>
+                    <Edit2 size={14} />
+                  </IconButton>
+                  <IconButton onClick={(e) => handleDelete(e, room.id)}>
+                    <Trash2 size={14} color="#ff4d4f" />
+                  </IconButton>
+                </ActionButtons>
+              </>
+            )}
           </RoomItem>
         ))}
       </RoomList>
       <SidebarFooter>
         <ClearButton onClick={onClearHistory}>
           <Trash2 size={16} />
-          대화 내역 삭제
+          모든 대화 내역 삭제
         </ClearButton>
       </SidebarFooter>
     </SidebarContainer>

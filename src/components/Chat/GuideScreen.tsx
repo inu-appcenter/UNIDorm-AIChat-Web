@@ -48,6 +48,7 @@ interface GuideScreenProps {
 
 const guideMessages = [
   "인천대학교 기숙사에 대해 알려줘.",
+  "이번 달 주요 일정 알려줘.",
   "교양강좌 뭐 있어?",
   "최근 공지사항 알려줘.",
   "생활원 전화번호 알려줘.",

@@ -23,8 +23,12 @@ export default function App() {
     setCurrentRoomId,
     isLoading,
     createNewRoom,
+    deleteRoom,
+    updateRoomTitle,
     clearHistory,
     sendMessage,
+    regenerateResponse,
+    stopGeneration,
     chatAreaRef,
   } = useChat();
 
@@ -58,6 +62,8 @@ export default function App() {
           onSelectRoom={handleSelectRoom}
           onNewChat={handleNewChat}
           onClearHistory={clearHistory}
+          onDeleteRoom={deleteRoom}
+          onUpdateRoomTitle={updateRoomTitle}
         />
 
         <MainArea>
@@ -70,19 +76,28 @@ export default function App() {
 
           <ChatArea ref={chatAreaRef}>
             {currentRoom.messages.length === 0 ? (
-              <GuideScreen onSelectGuide={sendMessage} />
+              <GuideScreen onSelectGuide={(msg) => sendMessage(msg)} />
             ) : (
               currentRoom.messages.map((msg, index) => (
                 <ChatMessage
                   key={index}
                   role={msg.role}
                   content={msg.content}
+                  timestamp={msg.timestamp}
+                  isError={msg.isError}
+                  isLast={index === currentRoom.messages.length - 1}
+                  onRetry={() => sendMessage(currentRoom.messages[index-1]?.content || "", true)}
+                  onRegenerate={regenerateResponse}
                 />
               ))
             )}
           </ChatArea>
 
-          <ChatInput onSendMessage={sendMessage} isLoading={isLoading} />
+          <ChatInput 
+            onSendMessage={(msg) => sendMessage(msg)} 
+            isLoading={isLoading} 
+            onStopGeneration={stopGeneration}
+          />
         </MainArea>
       </AppContainer>
     </>

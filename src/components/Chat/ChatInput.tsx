@@ -1,6 +1,6 @@
 import React, { useState, useRef } from "react";
 import styled from "styled-components";
-import { Send } from "lucide-react";
+import { Send, Square } from "lucide-react";
 import { COLORS } from "../../constants/colors";
 
 const InputWrapper = styled.div`
@@ -49,31 +49,42 @@ const TextInput = styled.textarea`
   }
 `;
 
-const SendButton = styled.button<{ $isActive: boolean }>`
-  background-color: ${(props) =>
-    props.$isActive ? COLORS.inuBlue : "#f0f0f0"};
-  color: ${(props) => (props.$isActive ? "#ffffff" : "#bbbbbb")};
-  border: none;
+const ActionButton = styled.button<{ $isActive: boolean; $isStop?: boolean }>`
+  background-color: ${(props) => {
+    if (props.$isStop) return "#fff1f0";
+    return props.$isActive ? COLORS.inuBlue : "#f0f0f0";
+  }};
+  color: ${(props) => {
+    if (props.$isStop) return "#ff4d4f";
+    return props.$isActive ? "#ffffff" : "#bbbbbb";
+  }};
+  border: ${(props) => (props.$isStop ? "1px solid #ff4d4f" : "none")};
   border-radius: 50%;
   width: 40px;
   height: 40px;
   display: flex;
   align-items: center;
   justify-content: center;
-  cursor: ${(props) => (props.$isActive ? "pointer" : "default")};
+  cursor: ${(props) => (props.$isActive || props.$isStop ? "pointer" : "default")};
   transition: all 0.2s ease;
   flex-shrink: 0;
   margin-bottom: 2px;
+
+  &:hover {
+    background-color: ${(props) => (props.$isStop ? "#ffccc7" : "")};
+  }
 `;
 
 interface ChatInputProps {
   onSendMessage: (text: string) => void;
   isLoading: boolean;
+  onStopGeneration: () => void;
 }
 
 export const ChatInput: React.FC<ChatInputProps> = ({
   onSendMessage,
   isLoading,
+  onStopGeneration,
 }) => {
   const [input, setInput] = useState("");
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -87,7 +98,11 @@ export const ChatInput: React.FC<ChatInputProps> = ({
 
   const handleSubmit = (e?: React.FormEvent) => {
     e?.preventDefault();
-    if (input.trim() && !isLoading) {
+    if (isLoading) {
+      onStopGeneration();
+      return;
+    }
+    if (input.trim()) {
       onSendMessage(input);
       setInput("");
       if (textareaRef.current) textareaRef.current.style.height = "auto";
@@ -113,15 +128,18 @@ export const ChatInput: React.FC<ChatInputProps> = ({
             handleInputResize();
           }}
           onKeyDown={handleKeyDown}
-          placeholder="질문을 입력하세요"
+          placeholder={isLoading ? "답변을 생성하고 있습니다..." : "질문을 입력하세요"}
+          disabled={isLoading}
         />
-        <SendButton
+        <ActionButton
           type="submit"
-          $isActive={input.trim().length > 0 && !isLoading}
-          disabled={!input.trim() || isLoading}
+          $isActive={input.trim().length > 0}
+          $isStop={isLoading}
+          disabled={!isLoading && !input.trim()}
+          title={isLoading ? "응답 중지" : "전송"}
         >
-          <Send size={18} />
-        </SendButton>
+          {isLoading ? <Square size={16} fill="currentColor" /> : <Send size={18} />}
+        </ActionButton>
       </InputForm>
     </InputWrapper>
   );

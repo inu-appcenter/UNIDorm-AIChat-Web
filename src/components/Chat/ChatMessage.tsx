@@ -1,6 +1,15 @@
 import React from "react";
-import styled from "styled-components";
+import styled, { keyframes } from "styled-components";
 import { COLORS } from "../../constants/colors";
+
+const bounce = keyframes`
+  0%, 80%, 100% { 
+    transform: translateY(0);
+  }
+  40% { 
+    transform: translateY(-8px);
+  }
+`;
 
 const MessageRow = styled.div<{ $isUser: boolean }>`
   width: 100%;
@@ -33,6 +42,22 @@ const MessageBubble = styled.div<{ $isUser: boolean }>`
   }
 `;
 
+const LoadingDots = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  height: 24px;
+`;
+
+const Dot = styled.div<{ $delay: string }>`
+  width: 6px;
+  height: 6px;
+  background-color: #bbbbbb;
+  border-radius: 50%;
+  animation: ${bounce} 1.4s infinite ease-in-out both;
+  animation-delay: ${(props) => props.$delay};
+`;
+
 interface ChatMessageProps {
   role: "user" | "ai";
   content: string;
@@ -56,10 +81,20 @@ const formatMessageContent = (content: string) => {
 
 export const ChatMessage: React.FC<ChatMessageProps> = ({ role, content }) => {
   const isUser = role === "user";
+  const isLoading = !isUser && content === "";
+
   return (
     <MessageRow $isUser={isUser}>
       <MessageBubble $isUser={isUser}>
-        {formatMessageContent(content)}
+        {isLoading ? (
+          <LoadingDots>
+            <Dot $delay="-0.32s" />
+            <Dot $delay="-0.16s" />
+            <Dot $delay="0s" />
+          </LoadingDots>
+        ) : (
+          formatMessageContent(content)
+        )}
       </MessageBubble>
     </MessageRow>
   );

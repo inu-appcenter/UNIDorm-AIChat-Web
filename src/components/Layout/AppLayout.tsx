@@ -9,7 +9,7 @@ export const AppContainer = styled.div`
   bottom: 0;
   height: 100dvh;
   background: linear-gradient(135deg, #e2eafc 0%, #edf2f7 50%, #fcebb6 100%);
-  overflow: hidden;
+  /* overflow: hidden; 대신 기본 스크롤 허용하여 새로고침 제스처 인식 */
 `;
 
 export const Overlay = styled.div<{ $isOpen: boolean }>`

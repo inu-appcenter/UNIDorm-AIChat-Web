@@ -2,16 +2,33 @@ import { useState, useRef, useEffect } from "react";
 import type { ChatRoom, ChatMessage } from "../types/chat";
 import { API_URL } from "../constants/api";
 
+const STORAGE_KEY = "unidorm_chat_rooms";
+
 export const useChat = () => {
-  const [rooms, setRooms] = useState<ChatRoom[]>([
-    { id: Date.now().toString(), title: "새로운 대화", messages: [] },
-  ]);
+  // 로컬 스토리지에서 초기 데이터 불러오기
+  const [rooms, setRooms] = useState<ChatRoom[]>(() => {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch (e) {
+        console.error("Failed to parse rooms from localStorage", e);
+      }
+    }
+    return [{ id: Date.now().toString(), title: "새로운 대화", messages: [] }];
+  });
+
   const [currentRoomId, setCurrentRoomId] = useState<string>(rooms[0].id);
   const [isLoading, setIsLoading] = useState(false);
   const chatAreaRef = useRef<HTMLDivElement>(null);
 
   const currentRoom =
     rooms.find((room) => room.id === currentRoomId) || rooms[0];
+
+  // 데이터 변경 시 로컬 스토리지에 저장
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(rooms));
+  }, [rooms]);
 
   useEffect(() => {
     if (chatAreaRef.current) {
@@ -27,6 +44,19 @@ export const useChat = () => {
     };
     setRooms([newRoom, ...rooms]);
     setCurrentRoomId(newRoom.id);
+  };
+
+  const clearHistory = () => {
+    if (window.confirm("모든 대화 내역을 삭제하시겠습니까?")) {
+      const initialRoom = {
+        id: Date.now().toString(),
+        title: "새로운 대화",
+        messages: [],
+      };
+      setRooms([initialRoom]);
+      setCurrentRoomId(initialRoom.id);
+      localStorage.removeItem(STORAGE_KEY);
+    }
   };
 
   const sendMessage = async (text: string) => {
@@ -108,6 +138,7 @@ export const useChat = () => {
     setCurrentRoomId,
     isLoading,
     createNewRoom,
+    clearHistory,
     sendMessage,
     chatAreaRef,
   };

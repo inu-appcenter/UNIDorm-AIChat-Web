@@ -6,10 +6,8 @@ export const GlobalStyle = createGlobalStyle`
         padding: 0;
         width: 100%;
         height: 100%;
-        overflow: hidden;
         background-color: #f7f9fc;
-        /* iOS 사파리 스크롤 바운스 현상 방지 */
-        overscroll-behavior-y: none; 
+        /* overscroll-behavior-y: none; 를 제거하여 새로고침 제스처 허용 */
     }
     * {
         box-sizing: border-box;

@@ -23,6 +23,7 @@ export default function App() {
     setCurrentRoomId,
     isLoading,
     createNewRoom,
+    clearHistory,
     sendMessage,
     chatAreaRef,
   } = useChat();
@@ -56,6 +57,7 @@ export default function App() {
           currentRoomId={currentRoomId}
           onSelectRoom={handleSelectRoom}
           onNewChat={handleNewChat}
+          onClearHistory={clearHistory}
         />
 
         <MainArea>

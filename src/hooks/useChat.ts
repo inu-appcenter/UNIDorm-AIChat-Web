@@ -37,6 +37,12 @@ export const useChat = () => {
   }, [currentRoom.messages]);
 
   const createNewRoom = () => {
+    const emptyRoom = rooms.find((room) => room.messages.length === 0);
+    if (emptyRoom) {
+      setCurrentRoomId(emptyRoom.id);
+      return;
+    }
+
     const newRoom: ChatRoom = {
       id: Date.now().toString(),
       title: "새로운 대화",

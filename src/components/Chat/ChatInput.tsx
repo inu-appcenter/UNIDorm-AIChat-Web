@@ -34,37 +34,41 @@ const InputForm = styled.form`
 
 const SelectWrapper = styled.div`
   position: relative;
-  margin-right: 8px;
-  margin-bottom: 2px;
+  width: fit-content;
+  margin-left: 12px;
+  margin-bottom: -4px;
 `;
 
 const StyledSelect = styled.select`
   appearance: none;
-  background-color: #f5f7f9;
+  background-color: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(8px);
   border: 1px solid #e1e4e8;
-  border-radius: 20px;
-  padding: 8px 32px 8px 16px;
-  font-size: 13px;
-  font-weight: 500;
-  color: ${COLORS.textDark};
+  border-radius: 12px;
+  padding: 6px 32px 6px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  color: ${COLORS.inuBlue};
   cursor: pointer;
   outline: none;
   transition: all 0.2s ease;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
 
   &:hover {
-    background-color: #edf0f3;
+    background-color: #ffffff;
+    border-color: ${COLORS.inuBlue};
   }
 `;
 
 const SelectIcon = styled.div`
   position: absolute;
-  right: 12px;
+  right: 10px;
   top: 50%;
   transform: translateY(-50%);
   pointer-events: none;
   display: flex;
   align-items: center;
-  color: #888;
+  color: ${COLORS.inuBlue};
 `;
 
 const TextInput = styled.textarea`
@@ -161,23 +165,23 @@ export const ChatInput: React.FC<ChatInputProps> = ({
 
   return (
     <InputWrapper>
+      <SelectWrapper>
+        <StyledSelect 
+          value={selectedChatbotType}
+          onChange={(e) => onChatbotTypeChange(e.target.value as ChatbotType)}
+          disabled={isLoading}
+        >
+          {Object.entries(CHATBOT_LABELS).map(([value, label]) => (
+            <option key={value} value={value}>
+              {label}
+            </option>
+          ))}
+        </StyledSelect>
+        <SelectIcon>
+          <ChevronDown size={14} />
+        </SelectIcon>
+      </SelectWrapper>
       <InputForm onSubmit={handleSubmit}>
-        <SelectWrapper>
-          <StyledSelect 
-            value={selectedChatbotType}
-            onChange={(e) => onChatbotTypeChange(e.target.value as ChatbotType)}
-            disabled={isLoading}
-          >
-            {Object.entries(CHATBOT_LABELS).map(([value, label]) => (
-              <option key={value} value={value}>
-                {label}
-              </option>
-            ))}
-          </StyledSelect>
-          <SelectIcon>
-            <ChevronDown size={14} />
-          </SelectIcon>
-        </SelectWrapper>
         <TextInput
           ref={textareaRef}
           rows={1}

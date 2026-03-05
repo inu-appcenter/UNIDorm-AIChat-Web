@@ -6,7 +6,7 @@ const STORAGE_KEY = "unidorm_chat_rooms";
 const MAX_HISTORY_LENGTH = 10;
 
 export const useChat = () => {
-  const [selectedChatbotType, setSelectedChatbotType] = useState<ChatbotType>("special");
+  const [selectedChatbotType, setSelectedChatbotType] = useState<ChatbotType>("classify");
   const [rooms, setRooms] = useState<ChatRoom[]>(() => {
     const saved = localStorage.getItem(STORAGE_KEY);
     if (saved) {

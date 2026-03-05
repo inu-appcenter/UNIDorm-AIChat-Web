@@ -49,10 +49,9 @@ interface GuideScreenProps {
 const guideMessages = [
   "인천대학교 기숙사에 대해 알려줘.",
   "이번 달 주요 일정 알려줘.",
-  "교양강좌 뭐 있어?",
-  "최근 공지사항 알려줘.",
-  "생활원 전화번호 알려줘.",
-  "2기숙사 몇시에 닫아?",
+  "최근 공지사항들 알려줘.",
+  "신청할 만한 프로그램 있어?",
+  "행정실 전화번호 알려줘.",
 ];
 
 export const GuideScreen: React.FC<GuideScreenProps> = ({ onSelectGuide }) => {

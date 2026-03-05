@@ -1,7 +1,8 @@
 import React, { useState, useRef } from "react";
 import styled from "styled-components";
-import { Send, Square } from "lucide-react";
+import { Send, Square, ChevronDown } from "lucide-react";
 import { COLORS } from "../../constants/colors";
+import { CHATBOT_LABELS, type ChatbotType } from "../../constants/api";
 
 const InputWrapper = styled.div`
   position: absolute;
@@ -11,6 +12,9 @@ const InputWrapper = styled.div`
   width: calc(100% - 40px);
   max-width: 760px;
   z-index: 20;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 `;
 
 const InputForm = styled.form`
@@ -18,7 +22,7 @@ const InputForm = styled.form`
   align-items: flex-end;
   background-color: ${COLORS.bgWhite};
   border-radius: 30px;
-  padding: 8px 12px 8px 24px;
+  padding: 8px 12px 8px 12px;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
   border: 1px solid #f0f0f0;
   transition: box-shadow 0.2s ease;
@@ -26,6 +30,41 @@ const InputForm = styled.form`
   &:focus-within {
     box-shadow: 0 6px 24px rgba(0, 62, 147, 0.12);
   }
+`;
+
+const SelectWrapper = styled.div`
+  position: relative;
+  margin-right: 8px;
+  margin-bottom: 2px;
+`;
+
+const StyledSelect = styled.select`
+  appearance: none;
+  background-color: #f5f7f9;
+  border: 1px solid #e1e4e8;
+  border-radius: 20px;
+  padding: 8px 32px 8px 16px;
+  font-size: 13px;
+  font-weight: 500;
+  color: ${COLORS.textDark};
+  cursor: pointer;
+  outline: none;
+  transition: all 0.2s ease;
+
+  &:hover {
+    background-color: #edf0f3;
+  }
+`;
+
+const SelectIcon = styled.div`
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  pointer-events: none;
+  display: flex;
+  align-items: center;
+  color: #888;
 `;
 
 const TextInput = styled.textarea`
@@ -79,12 +118,16 @@ interface ChatInputProps {
   onSendMessage: (text: string) => void;
   isLoading: boolean;
   onStopGeneration: () => void;
+  selectedChatbotType: ChatbotType;
+  onChatbotTypeChange: (type: ChatbotType) => void;
 }
 
 export const ChatInput: React.FC<ChatInputProps> = ({
   onSendMessage,
   isLoading,
   onStopGeneration,
+  selectedChatbotType,
+  onChatbotTypeChange,
 }) => {
   const [input, setInput] = useState("");
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -119,6 +162,22 @@ export const ChatInput: React.FC<ChatInputProps> = ({
   return (
     <InputWrapper>
       <InputForm onSubmit={handleSubmit}>
+        <SelectWrapper>
+          <StyledSelect 
+            value={selectedChatbotType}
+            onChange={(e) => onChatbotTypeChange(e.target.value as ChatbotType)}
+            disabled={isLoading}
+          >
+            {Object.entries(CHATBOT_LABELS).map(([value, label]) => (
+              <option key={value} value={value}>
+                {label}
+              </option>
+            ))}
+          </StyledSelect>
+          <SelectIcon>
+            <ChevronDown size={14} />
+          </SelectIcon>
+        </SelectWrapper>
         <TextInput
           ref={textareaRef}
           rows={1}

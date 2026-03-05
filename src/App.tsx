@@ -30,6 +30,8 @@ export default function App() {
     regenerateResponse,
     stopGeneration,
     chatAreaRef,
+    selectedChatbotType,
+    setSelectedChatbotType,
   } = useChat();
 
   const handleSelectRoom = (id: string) => {
@@ -85,6 +87,7 @@ export default function App() {
                   content={msg.content}
                   timestamp={msg.timestamp}
                   isError={msg.isError}
+                  buttons={msg.buttons}
                   isLast={index === currentRoom.messages.length - 1}
                   onRetry={() => sendMessage(currentRoom.messages[index-1]?.content || "", true)}
                   onRegenerate={regenerateResponse}
@@ -97,6 +100,8 @@ export default function App() {
             onSendMessage={(msg) => sendMessage(msg)} 
             isLoading={isLoading} 
             onStopGeneration={stopGeneration}
+            selectedChatbotType={selectedChatbotType}
+            onChatbotTypeChange={setSelectedChatbotType}
           />
         </MainArea>
       </AppContainer>

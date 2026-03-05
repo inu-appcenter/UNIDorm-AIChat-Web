@@ -1,11 +1,12 @@
 import { useState, useRef, useEffect } from "react";
 import type { ChatRoom, ChatMessage } from "../types/chat";
-import { API_URL } from "../constants/api";
+import { API_BASE_URL, CLASSIFY_URL, type ChatbotType } from "../constants/api";
 
 const STORAGE_KEY = "unidorm_chat_rooms";
-const MAX_HISTORY_LENGTH = 10; // 최근 10개 메시지만 서버에 전송 (Context Windowing)
+const MAX_HISTORY_LENGTH = 10;
 
 export const useChat = () => {
+  const [selectedChatbotType, setSelectedChatbotType] = useState<ChatbotType>("special");
   const [rooms, setRooms] = useState<ChatRoom[]>(() => {
     const saved = localStorage.getItem(STORAGE_KEY);
     if (saved) {
@@ -54,7 +55,7 @@ export const useChat = () => {
 
   const deleteRoom = (id: string) => {
     if (rooms.length === 1) {
-      clearHistory(); // 마지막 방이면 전체 초기화와 동일하게 처리
+      clearHistory();
       return;
     }
     const filteredRooms = rooms.filter((r) => r.id !== id);
@@ -92,7 +93,6 @@ export const useChat = () => {
       abortControllerRef.current = null;
       setIsLoading(false);
 
-      // 마지막 메시지가 비어있는 AI 메시지라면 안내 문구로 교체하여 로딩 애니메이션 제거
       setRooms((prevRooms) =>
         prevRooms.map((room) => {
           if (room.id === currentRoomId) {
@@ -110,6 +110,27 @@ export const useChat = () => {
         })
       );
     }
+  };
+
+  // 헬퍼: AI 메시지 업데이트
+  const updateAiMessage = (content: string, isError: boolean = false, buttons?: any[]) => {
+    setRooms((prevRooms) =>
+      prevRooms.map((room) => {
+        if (room.id === currentRoomId) {
+          const newMessages = [...room.messages];
+          const lastMsgIdx = newMessages.length - 1;
+          newMessages[lastMsgIdx] = {
+            ...newMessages[lastMsgIdx],
+            content,
+            isError,
+            buttons,
+            timestamp: Date.now()
+          };
+          return { ...room, messages: newMessages };
+        }
+        return room;
+      })
+    );
   };
 
   const sendMessage = async (text: string, isRetry: boolean = false) => {
@@ -147,21 +168,73 @@ export const useChat = () => {
     abortControllerRef.current = new AbortController();
 
     try {
-      // 최근 대화만 추출 (Windowing)
+      let activeChatbotType = selectedChatbotType;
+      let prefixContent = "";
+
+      // 1. 분류 모드라면 분류 작업 수행
+      if (selectedChatbotType === "classify") {
+        updateAiMessage("질문을 분류하는 중입니다...");
+        
+        const classifyResponse = await fetch(CLASSIFY_URL, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ text: text }),
+          signal: abortControllerRef.current.signal,
+        });
+
+        if (!classifyResponse.ok) throw new Error("분류 서버 응답 실패");
+        
+        const classifyResult = await classifyResponse.json();
+        const category = classifyResult.category;
+        const rawResponse = `[분류 서버 응답 데이터]\n${JSON.stringify(classifyResult, null, 2)}\n\n`;
+
+        // 카테고리별 분기 처리
+        if (category === "유니돔민원") {
+          updateAiMessage(rawResponse + "유니돔 민원 페이지에서 접수하실 수 있습니다.", false, [
+            { label: "유니돔 민원 접수", url: "https://unidorm.inuappcenter.kr/complain", primary: true }
+          ]);
+          setIsLoading(false);
+          return;
+        } else if (category === "시설고장") {
+          updateAiMessage(rawResponse + "시설 고장 신고는 포털 사이트를 이용해주세요.", false, [
+            { label: "인천대 포털 바로가기", url: "https://portal.inu.ac.kr", primary: true }
+          ]);
+          setIsLoading(false);
+          return;
+        } else if (category === "기타민원") {
+          updateAiMessage(rawResponse + "기타 민원 접수는 소속 기숙사에 따라 아래 시스템을 이용해주세요.", false, [
+            { label: "포털 사이트 (1기숙사)", url: "https://portal.inu.ac.kr", primary: true },
+            { label: "EDUFMS (2,3기숙사)", url: "https://edufms.inu.ac.kr", primary: true }
+          ]);
+          setIsLoading(false);
+          return;
+        } else if (category === "단순문의") {
+          activeChatbotType = "special";
+          prefixContent = rawResponse + `✅ ${category}으로 판정되었습니다.\n\n---\n\n`;
+          updateAiMessage(prefixContent + "챗봇 답변을 생성 중입니다...");
+        } else {
+          updateAiMessage(rawResponse + (classifyResult.final_guidance || "해당 문의는 관련 부서로 문의해주세요."));
+          setIsLoading(false);
+          return;
+        }
+      }
+
+      // 2. 챗봇 서버로 요청 (기존 스트리밍 로직)
       const targetRoom = rooms.find(r => r.id === currentRoomId);
       const messagesToSend = targetRoom ? targetRoom.messages : [];
       const historyPayload = isRetry 
-        ? messagesToSend.slice(0, -1) // 마지막 에러 메시지 제외
+        ? messagesToSend.slice(0, -1)
         : messagesToSend;
       
       const slicedHistory = historyPayload.slice(-MAX_HISTORY_LENGTH);
 
-      const response = await fetch(`${API_URL}/chat`, {
+      const response = await fetch(`${API_BASE_URL}/chat`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           question: text,
           history: slicedHistory,
+          type: activeChatbotType,
         }),
         signal: abortControllerRef.current.signal,
       });
@@ -170,47 +243,24 @@ export const useChat = () => {
 
       const reader = response.body.getReader();
       const decoder = new TextDecoder("utf-8");
-      let aiMessageContent = "";
+      
+      let aiMessageContent = prefixContent;
 
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
 
         aiMessageContent += decoder.decode(value, { stream: true });
-
-        setRooms((prevRooms) =>
-          prevRooms.map((room) => {
-            if (room.id === currentRoomId) {
-              const newMessages = [...room.messages];
-              newMessages[newMessages.length - 1].content = aiMessageContent;
-              return { ...room, messages: newMessages };
-            }
-            return room;
-          })
-        );
+        updateAiMessage(aiMessageContent);
       }
     } catch (error: any) {
       if (error.name === "AbortError") {
         console.log("Generation stopped by user.");
-        return; // 중단된 경우 별도 에러 처리 안 함
+        return;
       }
       
       console.error("API Error:", error);
-      setRooms((prevRooms) =>
-        prevRooms.map((room) => {
-          if (room.id === currentRoomId) {
-            const newMessages = [...room.messages];
-            newMessages[newMessages.length - 1] = {
-              role: "ai",
-              content: "서버와 연결할 수 없습니다. 다시 시도해주세요.",
-              timestamp: Date.now(),
-              isError: true, // 에러 플래그 추가
-            };
-            return { ...room, messages: newMessages };
-          }
-          return room;
-        })
-      );
+      updateAiMessage("서버와 연결할 수 없습니다. 다시 시도해주세요.", true);
     } finally {
       setIsLoading(false);
       abortControllerRef.current = null;
@@ -220,7 +270,6 @@ export const useChat = () => {
   const regenerateResponse = () => {
     if (isLoading) return;
     
-    // 현재 방의 메시지 중 마지막 사용자 메시지 찾기
     const lastUserMsg = [...currentRoom.messages]
       .reverse()
       .find((m) => m.role === "user");
@@ -244,5 +293,7 @@ export const useChat = () => {
     regenerateResponse,
     stopGeneration,
     chatAreaRef,
+    selectedChatbotType,
+    setSelectedChatbotType,
   };
 };

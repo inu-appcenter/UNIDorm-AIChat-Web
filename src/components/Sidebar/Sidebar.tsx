@@ -6,6 +6,7 @@ import type { ChatRoom } from "../../types/chat";
 
 const SidebarContainer = styled.div<{ $isOpen: boolean }>`
   width: 280px;
+  flex-shrink: 0;
   background-color: rgba(255, 255, 255, 0.75);
   backdrop-filter: blur(15px);
   -webkit-backdrop-filter: blur(15px);
@@ -13,11 +14,22 @@ const SidebarContainer = styled.div<{ $isOpen: boolean }>`
   display: flex;
   flex-direction: column;
   padding: 20px 15px;
-  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
   z-index: 50;
+
+  /* PC에서 닫혔을 때: 마진만 음수로 조절하여 메인 영역이 자연스럽게 확장되게 함 */
+  ${(props) => !props.$isOpen && `
+    margin-left: -280px;
+    opacity: 0;
+    pointer-events: none;
+  `}
+
   @media (max-width: 768px) {
     position: absolute;
     height: 100%;
+    margin-left: 0;
+    opacity: 1;
+    pointer-events: auto;
     transform: translateX(${(props) => (props.$isOpen ? "0" : "-100%")});
     box-shadow: 2px 0 12px rgba(0, 0, 0, 0.05);
   }

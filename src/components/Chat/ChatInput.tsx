@@ -10,7 +10,7 @@ const InputWrapper = styled.div`
   left: 50%;
   transform: translateX(-50%);
   width: calc(100% - 40px);
-  max-width: 760px;
+  max-width: 800px;
   z-index: 20;
   display: flex;
   flex-direction: column;

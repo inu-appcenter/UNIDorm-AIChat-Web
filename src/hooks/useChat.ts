@@ -1,16 +1,16 @@
 import { useState, useRef, useEffect } from "react";
 import type { ChatRoom, ChatMessage } from "../types/chat";
-import { API_BASE_URL, CLASSIFY_URL, CHAT_URL, type ChatbotType } from "../constants/api";
+import { CLASSIFY_URL, CHAT_URL, type ChatbotType } from "../constants/api";
 
 const STORAGE_KEY = "unidorm_chat_rooms";
 const MAX_HISTORY_LENGTH = 10;
 
 const BUTTON_MAP: Record<string, { label: string; url: string }> = {
-  UNIDORM: { label: "유니돔", url: "https://unidorm.inu.ac.kr" },
+  UNIDORM: { label: "유니돔", url: "https://unidorm.inuappcenter.kr" },
   PORTAL_MAIN: { label: "인천대 포털", url: "https://portal.inu.ac.kr" },
-  EDUFMS: { label: "에듀맥(QR) 수리 접수", url: "https://edufms.inu.ac.kr" },
+  EDUFMS: { label: "에듀맥(EDUFMS)", url: "https://edumac.kr/mon/index.do?schlType=Univ" },
   DORM_MAIN: { label: "기숙사 홈페이지", url: "https://dorm.inu.ac.kr" },
-  DORM_RESERVE: { label: "세미나실 예약 페이지", url: "https://dorm.inu.ac.kr/dorm/6524/subview.do" },
+  DORM_RESERVE: { label: "세미나실 예약 페이지", url: "https://dorm.inu.ac.kr/dorm/13698/subview.do" },
 };
 
 export const useChat = () => {

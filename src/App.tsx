@@ -15,7 +15,7 @@ import { ChatInput } from "./components/Chat/ChatInput";
 import { GuideScreen } from "./components/Chat/GuideScreen";
 
 export default function App() {
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(window.innerWidth > 768);
   const {
     rooms,
     currentRoom,

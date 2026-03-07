@@ -16,15 +16,22 @@ const GuideTitle = styled.h2`
   font-size: 16px;
   margin-bottom: 20px;
   font-weight: 700;
-  color: ${COLORS.inuBlue};
   padding-left: 5px;
+  
+  /* 3색 파랑보라 그라데이션 */
+  background: linear-gradient(90deg, #2563eb 0%, #7c3aed 50%, #4f46e5 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  color: transparent;
+  display: inline-block;
 `;
 
 const GuideCard = styled.button`
   background-color: ${COLORS.bgWhite};
   border: none;
-  padding: 14px 20px;
-  border-radius: 24px;
+  padding: 10px 18px;
+  border-radius: 20px;
   text-align: left;
   cursor: pointer;
   transition: all 0.2s ease;

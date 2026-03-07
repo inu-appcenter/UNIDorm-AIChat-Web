@@ -1,12 +1,20 @@
 import { useState, useRef, useEffect } from "react";
 import type { ChatRoom, ChatMessage } from "../types/chat";
-import { API_BASE_URL, CLASSIFY_URL, type ChatbotType } from "../constants/api";
+import { API_BASE_URL, CLASSIFY_URL, CHAT_URL, type ChatbotType } from "../constants/api";
 
 const STORAGE_KEY = "unidorm_chat_rooms";
 const MAX_HISTORY_LENGTH = 10;
 
+const BUTTON_MAP: Record<string, { label: string; url: string }> = {
+  UNIDORM: { label: "유니돔", url: "https://unidorm.inu.ac.kr" },
+  PORTAL_MAIN: { label: "인천대 포털", url: "https://portal.inu.ac.kr" },
+  EDUFMS: { label: "에듀맥(QR) 수리 접수", url: "https://edufms.inu.ac.kr" },
+  DORM_MAIN: { label: "기숙사 홈페이지", url: "https://dorm.inu.ac.kr" },
+  DORM_RESERVE: { label: "세미나실 예약 페이지", url: "https://dorm.inu.ac.kr/dorm/6524/subview.do" },
+};
+
 export const useChat = () => {
-  const [selectedChatbotType, setSelectedChatbotType] = useState<ChatbotType>("classify");
+  const [selectedChatbotType, setSelectedChatbotType] = useState<ChatbotType>("special");
   const [rooms, setRooms] = useState<ChatRoom[]>(() => {
     const saved = localStorage.getItem(STORAGE_KEY);
     if (saved) {
@@ -113,7 +121,26 @@ export const useChat = () => {
   };
 
   // 헬퍼: AI 메시지 업데이트
-  const updateAiMessage = (content: string, isError: boolean = false, buttons?: any[]) => {
+  const updateAiMessage = (content: string, isError: boolean = false, customButtons?: any[]) => {
+  // [BUTTON: KEY] 또는 [버튼: KEY] 패턴 파싱
+  const buttonRegex = /\[(?:BUTTON|버튼):\s*(\w+)\]/g;
+    const detectedButtons: any[] = [...(customButtons || [])];
+    let cleanedContent = content;
+    let match;
+
+    while ((match = buttonRegex.exec(content)) !== null) {
+      const key = match[1];
+      if (BUTTON_MAP[key]) {
+        // 중복 방지
+        if (!detectedButtons.find(b => b.url === BUTTON_MAP[key].url)) {
+          detectedButtons.push({ ...BUTTON_MAP[key], primary: true });
+        }
+      }
+    }
+    
+    // 텍스트에서 [BUTTON: KEY] 제거
+    cleanedContent = content.replace(buttonRegex, "").trim();
+
     setRooms((prevRooms) =>
       prevRooms.map((room) => {
         if (room.id === currentRoomId) {
@@ -121,9 +148,9 @@ export const useChat = () => {
           const lastMsgIdx = newMessages.length - 1;
           newMessages[lastMsgIdx] = {
             ...newMessages[lastMsgIdx],
-            content,
+            content: cleanedContent,
             isError,
-            buttons,
+            buttons: detectedButtons.length > 0 ? detectedButtons : undefined,
             timestamp: Date.now()
           };
           return { ...room, messages: newMessages };
@@ -228,7 +255,7 @@ export const useChat = () => {
       
       const slicedHistory = historyPayload.slice(-MAX_HISTORY_LENGTH);
 
-      const response = await fetch(`${API_BASE_URL}/chat`, {
+      const response = await fetch(CHAT_URL, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

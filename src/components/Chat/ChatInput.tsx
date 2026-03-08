@@ -167,11 +167,13 @@ export const ChatInput: React.FC<ChatInputProps> = ({
 
   return (
     <InputWrapper>
+      {/* AI 타입 선택 드롭다운 숨김 처리 (요청 시 표시 가능하도록 코드 유지) */}
+      {/* 
       <SelectWrapper>
         <StyledSelect 
           value={selectedChatbotType}
           onChange={(e) => onChatbotTypeChange(e.target.value as ChatbotType)}
-          disabled={true} // 임시 비활성화
+          disabled={true}
         >
           {Object.entries(CHATBOT_LABELS).map(([value, label]) => (
             <option key={value} value={value}>
@@ -183,6 +185,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
           <ChevronDown size={14} />
         </SelectIcon>
       </SelectWrapper>
+      */}
       <InputForm onSubmit={handleSubmit}>
         <TextInput
           ref={textareaRef}

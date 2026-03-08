@@ -2,8 +2,9 @@ import React, { useState } from "react";
 import styled, { keyframes } from "styled-components";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { Copy, Check, Bot, User, RefreshCw } from "lucide-react";
+import { Copy, Check, Bot, User, RefreshCw, ExternalLink } from "lucide-react";
 import { COLORS } from "../../constants/colors";
+import type { ChatButton as ChatButtonType } from "../../types/chat";
 
 const bounce = keyframes`
   0%, 80%, 100% { transform: translateY(0); }
@@ -129,6 +130,39 @@ const Dot = styled.div<{ $delay: string }>`
   animation-delay: ${(props) => props.$delay};
 `;
 
+const ButtonContainer = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+`;
+
+const StyledButtonLink = styled.a<{ $primary?: boolean }>`
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  border-radius: 12px;
+  font-size: 13px;
+  font-weight: 500;
+  text-decoration: none !important;
+  transition: all 0.2s ease;
+  
+  background-color: ${props => props.$primary ? COLORS.inuBlue : "#f0f2f5"};
+  color: ${props => props.$primary ? "#ffffff" : COLORS.textDark} !important;
+  border: 1px solid ${props => props.$primary ? COLORS.inuBlue : "#e1e4e8"};
+
+  &:hover {
+    background-color: ${props => props.$primary ? "#002d6b" : "#e4e6e9"};
+    transform: translateY(-1px);
+    box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+  }
+
+  &:active {
+    transform: translateY(0);
+  }
+`;
+
 interface ChatMessageProps {
   role: "user" | "ai";
   content: string;
@@ -137,6 +171,7 @@ interface ChatMessageProps {
   isLast?: boolean;
   onRetry?: () => void;
   onRegenerate?: () => void;
+  buttons?: ChatButtonType[];
 }
 
 /**
@@ -167,7 +202,8 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
   isError,
   isLast,
   onRetry,
-  onRegenerate 
+  onRegenerate,
+  buttons 
 }) => {
   const isUser = role === "user";
   const isLoading = !isUser && content === "";
@@ -258,7 +294,27 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
               <Dot $delay="-0.16s" />
               <Dot $delay="0s" />
             </LoadingDots>
-          ) : renderContent()}
+          ) : (
+            <>
+              {renderContent()}
+              {buttons && buttons.length > 0 && (
+                <ButtonContainer>
+                  {buttons.map((btn, idx) => (
+                    <StyledButtonLink 
+                      key={idx} 
+                      href={btn.url} 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      $primary={btn.primary}
+                    >
+                      {btn.label}
+                      <ExternalLink size={14} />
+                    </StyledButtonLink>
+                  ))}
+                </ButtonContainer>
+              )}
+            </>
+          )}
         </MessageBubble>
 
         {(!isLoading && (timestamp || !isUser)) && (

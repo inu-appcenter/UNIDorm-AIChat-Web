@@ -2,7 +2,7 @@ import React, { useState, useRef } from "react";
 import styled from "styled-components";
 import { Send, Square, ChevronDown } from "lucide-react";
 import { COLORS } from "../../constants/colors";
-import { type AiConcept } from "../../types/chat";
+import { CHATBOT_LABELS, type ChatbotType } from "../../constants/api";
 
 const InputWrapper = styled.div`
   position: absolute;
@@ -10,36 +10,11 @@ const InputWrapper = styled.div`
   left: 50%;
   transform: translateX(-50%);
   width: calc(100% - 40px);
-  max-width: 760px;
+  max-width: 800px;
   z-index: 20;
   display: flex;
   flex-direction: column;
-  gap: 12px;
-`;
-
-const ConceptSelectorWrapper = styled.div`
-  display: flex;
-  align-items: center;
   gap: 8px;
-  padding-left: 8px;
-`;
-
-const ConceptBadge = styled.div<{ $isActive: boolean }>`
-  background-color: ${(props) =>
-    props.$isActive ? COLORS.inuBlue : "#ffffff"};
-  color: ${(props) => (props.$isActive ? "#ffffff" : COLORS.textMuted)};
-  padding: 6px 14px;
-  border-radius: 18px;
-  font-size: 13px;
-  font-weight: 600;
-  border: 1px solid ${(props) => (props.$isActive ? COLORS.inuBlue : "#e0e0e0")};
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  cursor: default; // 임시 비활성화로 인한 커서 변경
-  opacity: ${(props) => (props.$isActive ? 1 : 0.6)};
-  transition: all 0.2s ease;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
 `;
 
 const InputForm = styled.form`
@@ -47,7 +22,7 @@ const InputForm = styled.form`
   align-items: flex-end;
   background-color: ${COLORS.bgWhite};
   border-radius: 30px;
-  padding: 8px 12px 8px 24px;
+  padding: 8px 12px 8px 12px;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
   border: 1px solid #f0f0f0;
   transition: box-shadow 0.2s ease;
@@ -55,6 +30,46 @@ const InputForm = styled.form`
   &:focus-within {
     box-shadow: 0 6px 24px rgba(0, 62, 147, 0.12);
   }
+`;
+
+const SelectWrapper = styled.div`
+  position: relative;
+  width: fit-content;
+  margin-left: 12px;
+  margin-bottom: -4px;
+`;
+
+const StyledSelect = styled.select`
+  appearance: none;
+  background-color: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(8px);
+  border: 1px solid #e1e4e8;
+  border-radius: 12px;
+  padding: 6px 32px 6px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  color: ${COLORS.inuBlue};
+  cursor: default;
+  outline: none;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  opacity: 0.8;
+
+  &:disabled {
+    cursor: default;
+  }
+`;
+
+const SelectIcon = styled.div`
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  pointer-events: none;
+  display: flex;
+  align-items: center;
+  color: ${COLORS.inuBlue};
+  opacity: 0.5;
 `;
 
 const TextInput = styled.textarea`
@@ -106,18 +121,21 @@ const ActionButton = styled.button<{ $isActive: boolean; $isStop?: boolean }>`
 `;
 
 interface ChatInputProps {
-  onSendMessage: (text: string, concept: AiConcept) => void;
+  onSendMessage: (text: string) => void;
   isLoading: boolean;
   onStopGeneration: () => void;
+  selectedChatbotType: ChatbotType;
+  onChatbotTypeChange: (type: ChatbotType) => void;
 }
 
 export const ChatInput: React.FC<ChatInputProps> = ({
   onSendMessage,
   isLoading,
   onStopGeneration,
+  selectedChatbotType,
+  onChatbotTypeChange,
 }) => {
   const [input, setInput] = useState("");
-  const [concept] = useState<AiConcept>("senior"); // 선배컨셉 고정
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const handleInputResize = () => {
@@ -134,7 +152,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
       return;
     }
     if (input.trim()) {
-      onSendMessage(input, concept);
+      onSendMessage(input);
       setInput("");
       if (textareaRef.current) textareaRef.current.style.height = "auto";
     }
@@ -149,18 +167,22 @@ export const ChatInput: React.FC<ChatInputProps> = ({
 
   return (
     <InputWrapper>
-      <ConceptSelectorWrapper>
-        <ConceptBadge $isActive={true}>
-          선배컨셉(특화)
-          <ChevronDown size={14} style={{ opacity: 0.5 }} />
-        </ConceptBadge>
-        {/* 임시 비활성화된 다른 옵션들 - 코드 유지 */}
-        {/* 
-        <ConceptBadge $isActive={false} style={{ cursor: 'not-allowed' }}>
-          일반 대화
-        </ConceptBadge>
-        */}
-      </ConceptSelectorWrapper>
+      <SelectWrapper>
+        <StyledSelect 
+          value={selectedChatbotType}
+          onChange={(e) => onChatbotTypeChange(e.target.value as ChatbotType)}
+          disabled={true} // 임시 비활성화
+        >
+          {Object.entries(CHATBOT_LABELS).map(([value, label]) => (
+            <option key={value} value={value}>
+              {label}
+            </option>
+          ))}
+        </StyledSelect>
+        <SelectIcon>
+          <ChevronDown size={14} />
+        </SelectIcon>
+      </SelectWrapper>
       <InputForm onSubmit={handleSubmit}>
         <TextInput
           ref={textareaRef}

@@ -15,7 +15,7 @@ import { ChatInput } from "./components/Chat/ChatInput";
 import { GuideScreen } from "./components/Chat/GuideScreen";
 
 export default function App() {
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(window.innerWidth > 768);
   const {
     rooms,
     currentRoom,
@@ -30,6 +30,8 @@ export default function App() {
     regenerateResponse,
     stopGeneration,
     chatAreaRef,
+    selectedChatbotType,
+    setSelectedChatbotType,
   } = useChat();
 
   const handleSelectRoom = (id: string) => {
@@ -85,8 +87,9 @@ export default function App() {
                   content={msg.content}
                   timestamp={msg.timestamp}
                   isError={msg.isError}
+                  buttons={msg.buttons}
                   isLast={index === currentRoom.messages.length - 1}
-                  onRetry={() => sendMessage(currentRoom.messages[index-1]?.content || "", currentRoom.concept || "senior", true)}
+                  onRetry={() => sendMessage(currentRoom.messages[index-1]?.content || "", true)}
                   onRegenerate={regenerateResponse}
                 />
               ))
@@ -94,9 +97,11 @@ export default function App() {
           </ChatArea>
 
           <ChatInput 
-            onSendMessage={(msg, concept) => sendMessage(msg, concept)} 
+            onSendMessage={(msg) => sendMessage(msg)} 
             isLoading={isLoading} 
             onStopGeneration={stopGeneration}
+            selectedChatbotType={selectedChatbotType}
+            onChatbotTypeChange={setSelectedChatbotType}
           />
         </MainArea>
       </AppContainer>

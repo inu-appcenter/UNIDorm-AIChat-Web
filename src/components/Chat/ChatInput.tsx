@@ -1,8 +1,14 @@
-import React, { useState, useRef } from "react";
-import styled from "styled-components";
+import React, { useState, useRef, useEffect } from "react";
+import styled, { keyframes, css } from "styled-components";
 import { Send, Square /*, ChevronDown */ } from "lucide-react";
 import { COLORS } from "../../constants/colors";
 import { /* CHATBOT_LABELS, */ type ChatbotType } from "../../constants/api";
+
+/* 회전 각도 애니메이션 */
+const rotateGlow = keyframes`
+  0% { --glow-angle: 0deg; }
+  100% { --glow-angle: 360deg; }
+`;
 
 const InputWrapper = styled.div`
   position: absolute;
@@ -17,22 +23,52 @@ const InputWrapper = styled.div`
   gap: 8px;
 `;
 
+const GlowContainer = styled.div<{ $isFocused: boolean; $isLoading: boolean }>`
+  position: relative;
+  border-radius: 32px;
+  background: transparent;
+  transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+
+  &::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: 32px;
+    z-index: -1;
+    opacity: ${(props) => (props.$isFocused || props.$isLoading ? 0.8 : 0.3)};
+    transition: opacity 0.5s ease;
+
+    /* 배경 그림자 그라데이션 및 블러 효과 */
+    background: conic-gradient(
+      from var(--glow-angle, 0deg),
+      #2563eb,
+      #7c3aed,
+      #4f46e5,
+      #2563eb
+    );
+    filter: blur(12px);
+
+    ${(props) =>
+      (props.$isFocused || props.$isLoading) &&
+      css`
+        animation: ${rotateGlow} 1.5s linear infinite;
+      `}
+  }
+`;
+
 const InputForm = styled.form`
   display: flex;
   align-items: flex-end;
   background-color: ${COLORS.bgWhite};
-  border-radius: 30px;
-  padding: 8px 12px 8px 12px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
-  border: 1px solid #f0f0f0;
-  transition: box-shadow 0.2s ease;
-
-  &:focus-within {
-    box-shadow: 0 6px 24px rgba(0, 62, 147, 0.12);
-  }
+  border-radius: 31px;
+  padding: 8px 12px 8px 24px;
+  border: none;
+  width: 100%;
+  position: relative;
+  z-index: 1;
 `;
 
-/* AI 타입 선택 드롭다운 스타일 - 미사용 에러로 인한 임시 주석 처리
+/* AI 타입 선택 드롭다운 스타일 - 미사용 에러 방지 임시 주석
 const SelectWrapper = styled.div`
   position: relative;
   width: fit-content;
@@ -138,7 +174,16 @@ export const ChatInput: React.FC<ChatInputProps> = ({
   // onChatbotTypeChange,
 }) => {
   const [input, setInput] = useState("");
+  const [isFocused, setIsFocused] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  // 답변 생성 완료 또는 중단 시 포커스 해제
+  useEffect(() => {
+    if (!isLoading) {
+      textareaRef.current?.blur();
+      setIsFocused(false);
+    }
+  }, [isLoading]);
 
   const handleInputResize = () => {
     if (textareaRef.current) {
@@ -169,10 +214,20 @@ export const ChatInput: React.FC<ChatInputProps> = ({
 
   return (
     <InputWrapper>
-      {/* AI 타입 선택 드롭다운 숨김 처리 (요청 시 표시 가능하도록 코드 유지) */}
-      {/* 
-      <SelectWrapper>
-        <StyledSelect 
+      {/* 커스텀 속성 전역 선언 */}
+      <style>
+        {`
+          @property --glow-angle {
+            syntax: "<angle>";
+            initial-value: 0deg;
+            inherits: false;
+          }
+        `}
+      </style>
+
+      {/* AI 타입 선택 드롭다운 숨김 처리 */}
+      {/* <SelectWrapper>
+        <StyledSelect
           value={selectedChatbotType}
           onChange={(e) => onChatbotTypeChange(e.target.value as ChatbotType)}
           disabled={true}
@@ -188,35 +243,39 @@ export const ChatInput: React.FC<ChatInputProps> = ({
         </SelectIcon>
       </SelectWrapper>
       */}
-      <InputForm onSubmit={handleSubmit}>
-        <TextInput
-          ref={textareaRef}
-          rows={1}
-          value={input}
-          onChange={(e) => {
-            setInput(e.target.value);
-            handleInputResize();
-          }}
-          onKeyDown={handleKeyDown}
-          placeholder={
-            isLoading ? "답변을 생성하고 있습니다..." : "질문을 입력하세요"
-          }
-          disabled={isLoading}
-        />
-        <ActionButton
-          type="submit"
-          $isActive={input.trim().length > 0}
-          $isStop={isLoading}
-          disabled={!isLoading && !input.trim()}
-          title={isLoading ? "응답 중지" : "전송"}
-        >
-          {isLoading ? (
-            <Square size={16} fill="currentColor" />
-          ) : (
-            <Send size={18} />
-          )}
-        </ActionButton>
-      </InputForm>
+      <GlowContainer $isFocused={isFocused} $isLoading={isLoading}>
+        <InputForm onSubmit={handleSubmit}>
+          <TextInput
+            ref={textareaRef}
+            rows={1}
+            value={input}
+            onChange={(e) => {
+              setInput(e.target.value);
+              handleInputResize();
+            }}
+            onFocus={() => setIsFocused(true)}
+            onBlur={() => setIsFocused(false)}
+            onKeyDown={handleKeyDown}
+            placeholder={
+              isLoading ? "답변을 생성하고 있습니다..." : "질문을 입력하세요"
+            }
+            disabled={isLoading}
+          />
+          <ActionButton
+            type="submit"
+            $isActive={input.trim().length > 0}
+            $isStop={isLoading}
+            disabled={!isLoading && !input.trim()}
+            title={isLoading ? "응답 중지" : "전송"}
+          >
+            {isLoading ? (
+              <Square size={16} fill="currentColor" />
+            ) : (
+              <Send size={18} />
+            )}
+          </ActionButton>
+        </InputForm>
+      </GlowContainer>
     </InputWrapper>
   );
 };

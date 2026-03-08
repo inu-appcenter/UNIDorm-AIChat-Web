@@ -1,8 +1,8 @@
 import React, { useState, useRef } from "react";
 import styled from "styled-components";
-import { Send, Square, ChevronDown } from "lucide-react";
+import { Send, Square /*, ChevronDown */ } from "lucide-react";
 import { COLORS } from "../../constants/colors";
-import { CHATBOT_LABELS, type ChatbotType } from "../../constants/api";
+import { /* CHATBOT_LABELS, */ type ChatbotType } from "../../constants/api";
 
 const InputWrapper = styled.div`
   position: absolute;
@@ -32,6 +32,7 @@ const InputForm = styled.form`
   }
 `;
 
+/* AI 타입 선택 드롭다운 스타일 - 미사용 에러로 인한 임시 주석 처리
 const SelectWrapper = styled.div`
   position: relative;
   width: fit-content;
@@ -71,6 +72,7 @@ const SelectIcon = styled.div`
   color: ${COLORS.inuBlue};
   opacity: 0.5;
 `;
+*/
 
 const TextInput = styled.textarea`
   flex: 1;
@@ -132,8 +134,8 @@ export const ChatInput: React.FC<ChatInputProps> = ({
   onSendMessage,
   isLoading,
   onStopGeneration,
-  selectedChatbotType,
-  onChatbotTypeChange,
+  // selectedChatbotType,
+  // onChatbotTypeChange,
 }) => {
   const [input, setInput] = useState("");
   const textareaRef = useRef<HTMLTextAreaElement>(null);

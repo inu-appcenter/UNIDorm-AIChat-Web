@@ -8,13 +8,20 @@ const MAX_HISTORY_LENGTH = 10;
 const BUTTON_MAP: Record<string, { label: string; url: string }> = {
   UNIDORM: { label: "유니돔", url: "https://unidorm.inuappcenter.kr" },
   PORTAL_MAIN: { label: "인천대 포털", url: "https://portal.inu.ac.kr" },
-  EDUFMS: { label: "에듀맥(EDUFMS)", url: "https://edumac.kr/mon/index.do?schlType=Univ" },
+  EDUFMS: {
+    label: "에듀맥(EDUFMS)",
+    url: "https://edumac.kr/mon/index.do?schlType=Univ",
+  },
   DORM_MAIN: { label: "기숙사 홈페이지", url: "https://dorm.inu.ac.kr" },
-  DORM_RESERVE: { label: "세미나실 예약 페이지", url: "https://dorm.inu.ac.kr/dorm/13698/subview.do" },
+  DORM_RESERVE: {
+    label: "세미나실 예약 페이지",
+    url: "https://dorm.inu.ac.kr/dorm/13698/subview.do",
+  },
 };
 
 export const useChat = () => {
-  const [selectedChatbotType, setSelectedChatbotType] = useState<ChatbotType>("special");
+  const [selectedChatbotType, setSelectedChatbotType] =
+    useState<ChatbotType>("special");
   const [rooms, setRooms] = useState<ChatRoom[]>(() => {
     const saved = localStorage.getItem(STORAGE_KEY);
     if (saved) {
@@ -24,7 +31,14 @@ export const useChat = () => {
         console.error("Failed to parse rooms from localStorage", e);
       }
     }
-    return [{ id: Date.now().toString(), title: "새로운 대화", messages: [], chatbotType: "special" }];
+    return [
+      {
+        id: Date.now().toString(),
+        title: "새로운 대화",
+        messages: [],
+        chatbotType: "special",
+      },
+    ];
   });
 
   const [currentRoomId, setCurrentRoomId] = useState<string>(rooms[0].id);
@@ -78,13 +92,13 @@ export const useChat = () => {
     if (!newTitle.trim()) return;
     setRooms((prevRooms) =>
       prevRooms.map((room) =>
-        room.id === id ? { ...room, title: newTitle.trim() } : room
-      )
+        room.id === id ? { ...room, title: newTitle.trim() } : room,
+      ),
     );
   };
 
   const clearHistory = () => {
-    if (window.confirm("모든 대화 내역을 삭제하시겠습니까?")) {
+    if (window.confirm("모든 대화 내역을 삭제할까요?")) {
       const initialRoom: ChatRoom = {
         id: Date.now().toString(),
         title: "새로운 대화",
@@ -117,12 +131,16 @@ export const useChat = () => {
             }
           }
           return room;
-        })
+        }),
       );
     }
   };
 
-  const updateAiMessage = (content: string, isError: boolean = false, customButtons?: any[]) => {
+  const updateAiMessage = (
+    content: string,
+    isError: boolean = false,
+    customButtons?: any[],
+  ) => {
     const buttonRegex = /\[(?:BUTTON|버튼):\s*(\w+)\]/g;
     const detectedButtons: any[] = [...(customButtons || [])];
     let cleanedContent = content;
@@ -131,12 +149,12 @@ export const useChat = () => {
     while ((match = buttonRegex.exec(content)) !== null) {
       const key = match[1];
       if (BUTTON_MAP[key]) {
-        if (!detectedButtons.find(b => b.url === BUTTON_MAP[key].url)) {
+        if (!detectedButtons.find((b) => b.url === BUTTON_MAP[key].url)) {
           detectedButtons.push({ ...BUTTON_MAP[key], primary: true });
         }
       }
     }
-    
+
     cleanedContent = content.replace(buttonRegex, "").trim();
 
     setRooms((prevRooms) =>
@@ -149,34 +167,42 @@ export const useChat = () => {
             content: cleanedContent,
             isError,
             buttons: detectedButtons.length > 0 ? detectedButtons : undefined,
-            timestamp: Date.now()
+            timestamp: Date.now(),
           };
           return { ...room, messages: newMessages };
         }
         return room;
-      })
+      }),
     );
   };
 
   const sendMessage = async (text: string, isRetry: boolean = false) => {
     if (!text.trim() || isLoading) return;
 
-    const userMsg: ChatMessage = { 
-      role: "user", 
-      content: text, 
-      timestamp: Date.now() 
+    const userMsg: ChatMessage = {
+      role: "user",
+      content: text,
+      timestamp: Date.now(),
     };
 
     setRooms((prevRooms) =>
       prevRooms.map((room) => {
         if (room.id === currentRoomId) {
           const isFirstMessage = room.messages.length === 0;
-          const newMessages: ChatMessage[] = isRetry 
-            ? [...room.messages] 
-            : [...room.messages, userMsg, { role: "ai", content: "", timestamp: Date.now() }];
-          
+          const newMessages: ChatMessage[] = isRetry
+            ? [...room.messages]
+            : [
+                ...room.messages,
+                userMsg,
+                { role: "ai", content: "", timestamp: Date.now() },
+              ];
+
           if (isRetry) {
-             newMessages[newMessages.length - 1] = { role: "ai", content: "", timestamp: Date.now() };
+            newMessages[newMessages.length - 1] = {
+              role: "ai",
+              content: "",
+              timestamp: Date.now(),
+            };
           }
 
           return {
@@ -186,7 +212,7 @@ export const useChat = () => {
           };
         }
         return room;
-      })
+      }),
     );
 
     setIsLoading(true);
@@ -198,7 +224,7 @@ export const useChat = () => {
 
       if (selectedChatbotType === "classify") {
         updateAiMessage("질문을 분류하는 중입니다...");
-        
+
         const classifyResponse = await fetch(CLASSIFY_URL, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -207,47 +233,81 @@ export const useChat = () => {
         });
 
         if (!classifyResponse.ok) throw new Error("분류 서버 응답 실패");
-        
+
         const classifyResult = await classifyResponse.json();
         const category = classifyResult.category;
         const rawResponse = `[분류 서버 응답 데이터]\n${JSON.stringify(classifyResult, null, 2)}\n\n`;
 
         if (category === "유니돔민원") {
-          updateAiMessage(rawResponse + "유니돔 민원 페이지에서 접수하실 수 있습니다.", false, [
-            { label: "유니돔 민원 접수", url: "https://unidorm.inuappcenter.kr/complain", primary: true }
-          ]);
+          updateAiMessage(
+            rawResponse + "유니돔 민원 페이지에서 접수하실 수 있습니다.",
+            false,
+            [
+              {
+                label: "유니돔 민원 접수",
+                url: "https://unidorm.inuappcenter.kr/complain",
+                primary: true,
+              },
+            ],
+          );
           setIsLoading(false);
           return;
         } else if (category === "시설고장") {
-          updateAiMessage(rawResponse + "시설 고장 신고는 포털 사이트를 이용해주세요.", false, [
-            { label: "인천대 포털 바로가기", url: "https://portal.inu.ac.kr", primary: true }
-          ]);
+          updateAiMessage(
+            rawResponse + "시설 고장 신고는 포털 사이트를 이용해주세요.",
+            false,
+            [
+              {
+                label: "인천대 포털 바로가기",
+                url: "https://portal.inu.ac.kr",
+                primary: true,
+              },
+            ],
+          );
           setIsLoading(false);
           return;
         } else if (category === "기타민원") {
-          updateAiMessage(rawResponse + "기타 민원 접수는 소속 기숙사에 따라 아래 시스템을 이용해주세요.", false, [
-            { label: "포털 사이트 (1기숙사)", url: "https://portal.inu.ac.kr", primary: true },
-            { label: "EDUFMS (2,3기숙사)", url: "https://edufms.inu.ac.kr", primary: true }
-          ]);
+          updateAiMessage(
+            rawResponse +
+              "기타 민원 접수는 소속 기숙사에 따라 아래 시스템을 이용해주세요.",
+            false,
+            [
+              {
+                label: "포털 사이트 (1기숙사)",
+                url: "https://portal.inu.ac.kr",
+                primary: true,
+              },
+              {
+                label: "EDUFMS (2,3기숙사)",
+                url: "https://edufms.inu.ac.kr",
+                primary: true,
+              },
+            ],
+          );
           setIsLoading(false);
           return;
         } else if (category === "단순문의") {
           activeChatbotType = "special";
-          prefixContent = rawResponse + `✅ ${category}으로 판정되었습니다.\n\n---\n\n`;
+          prefixContent =
+            rawResponse + `✅ ${category}으로 판정되었습니다.\n\n---\n\n`;
           updateAiMessage(prefixContent + "챗봇 답변을 생성 중입니다...");
         } else {
-          updateAiMessage(rawResponse + (classifyResult.final_guidance || "해당 문의는 관련 부서로 문의해주세요."));
+          updateAiMessage(
+            rawResponse +
+              (classifyResult.final_guidance ||
+                "해당 문의는 관련 부서로 문의해주세요."),
+          );
           setIsLoading(false);
           return;
         }
       }
 
-      const targetRoom = rooms.find(r => r.id === currentRoomId);
+      const targetRoom = rooms.find((r) => r.id === currentRoomId);
       const messagesToSend = targetRoom ? targetRoom.messages : [];
-      const historyPayload = isRetry 
+      const historyPayload = isRetry
         ? messagesToSend.slice(0, -1)
         : messagesToSend;
-      
+
       const slicedHistory = historyPayload.slice(-MAX_HISTORY_LENGTH);
 
       const response = await fetch(CHAT_URL, {
@@ -265,7 +325,7 @@ export const useChat = () => {
 
       const reader = response.body.getReader();
       const decoder = new TextDecoder("utf-8");
-      
+
       let aiMessageContent = prefixContent;
 
       while (true) {
@@ -280,7 +340,7 @@ export const useChat = () => {
         console.log("Generation stopped by user.");
         return;
       }
-      
+
       console.error("API Error:", error);
       updateAiMessage("서버와 연결할 수 없습니다. 다시 시도해주세요.", true);
     } finally {
@@ -291,7 +351,7 @@ export const useChat = () => {
 
   const regenerateResponse = () => {
     if (isLoading) return;
-    
+
     const lastUserMsg = [...currentRoom.messages]
       .reverse()
       .find((m) => m.role === "user");

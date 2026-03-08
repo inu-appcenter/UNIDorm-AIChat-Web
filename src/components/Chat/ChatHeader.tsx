@@ -19,7 +19,19 @@ const HeaderTitle = styled.div`
   letter-spacing: -0.5px;
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
+`;
+
+const BetaBadge = styled.span`
+  background-color: ${COLORS.inuBlue};
+  color: white;
+  font-size: 10px;
+  font-weight: 600;
+  padding: 2px 6px;
+  border-radius: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-top: 1px;
 `;
 
 const MenuButton = styled.button`
@@ -53,7 +65,10 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
           <Menu size={24} />
         )}
       </MenuButton>
-      <HeaderTitle>챗불이 in UNIDorm</HeaderTitle>
+      <HeaderTitle>
+        챗불이 in UNIDorm
+        <BetaBadge>Beta</BetaBadge>
+      </HeaderTitle>
     </HeaderContainer>
   );
 };

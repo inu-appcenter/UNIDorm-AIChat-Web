@@ -3,6 +3,7 @@ import styled from "styled-components";
 import { MessageSquare, Plus, Trash2, Edit2, Check, X } from "lucide-react";
 import { COLORS } from "../../constants/colors";
 import type { ChatRoom } from "../../types/chat";
+import AppCenterLogo from "../../assets/텍스트O_블랙.png";
 
 const SidebarContainer = styled.div<{ $isOpen: boolean }>`
   width: 280px;
@@ -18,7 +19,9 @@ const SidebarContainer = styled.div<{ $isOpen: boolean }>`
   z-index: 50;
 
   /* PC에서 닫혔을 때: 마진만 음수로 조절하여 메인 영역이 자연스럽게 확장되게 함 */
-  ${(props) => !props.$isOpen && `
+  ${(props) =>
+    !props.$isOpen &&
+    `
     margin-left: -280px;
     opacity: 0;
     pointer-events: none;
@@ -83,7 +86,7 @@ const RoomItem = styled.div<{ $isActive: boolean }>`
   color: ${(props) => (props.$isActive ? COLORS.inuBlue : COLORS.textMuted)};
   background-color: ${(props) => (props.$isActive ? "#f0f4fa" : "transparent")};
   transition: background-color 0.2s ease;
-  
+
   &:hover {
     background-color: #f0f4fa;
     .room-actions {
@@ -116,7 +119,7 @@ const ActionButtons = styled.div`
   gap: 6px;
   opacity: 0;
   transition: opacity 0.2s ease;
-  
+
   /* 모바일에서는 항상 보이도록 */
   @media (max-width: 768px) {
     opacity: 1;
@@ -132,10 +135,10 @@ const IconButton = styled.button`
   display: flex;
   align-items: center;
   border-radius: 6px;
-  
+
   &:hover {
     color: ${COLORS.textDark};
-    background-color: rgba(0,0,0,0.05);
+    background-color: rgba(0, 0, 0, 0.05);
   }
 `;
 
@@ -162,6 +165,25 @@ const ClearButton = styled.button`
   &:hover {
     background-color: #fff1f0;
   }
+`;
+
+const LogoContainer = styled.a`
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 15px 0 5px 0;
+  opacity: 0.9;
+  cursor: pointer;
+  transition: opacity 0.2s ease;
+  &:hover {
+    opacity: 1;
+  }
+`;
+
+const LogoImage = styled.img`
+  width: 180px;
+  height: auto;
+  object-fit: contain;
 `;
 
 interface SidebarProps {
@@ -216,7 +238,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
   const handleDelete = (e: React.MouseEvent, id: string) => {
     e.stopPropagation();
-    if (window.confirm("이 대화방을 삭제하시겠습니까?")) {
+    if (window.confirm("이 대화방을 삭제할까요?")) {
       onDeleteRoom(id);
     }
   };
@@ -235,7 +257,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             onClick={() => onSelectRoom(room.id)}
           >
             <MessageSquare size={16} />
-            
+
             {editingId === room.id ? (
               <>
                 <RoomInput
@@ -257,7 +279,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 <RoomTitle>{room.title}</RoomTitle>
                 {room.messages.length > 0 && (
                   <ActionButtons className="room-actions">
-                    <IconButton onClick={(e) => startEdit(e, room.id, room.title)}>
+                    <IconButton
+                      onClick={(e) => startEdit(e, room.id, room.title)}
+                    >
                       <Edit2 size={14} />
                     </IconButton>
                     <IconButton onClick={(e) => handleDelete(e, room.id)}>
@@ -275,6 +299,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
           <Trash2 size={16} />
           모든 대화 내역 삭제
         </ClearButton>
+        <LogoContainer
+          href="https://home.inuappcenter.kr"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          <LogoImage src={AppCenterLogo} alt="App Center Logo" />
+        </LogoContainer>
       </SidebarFooter>
     </SidebarContainer>
   );

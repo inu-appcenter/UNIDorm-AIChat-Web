@@ -158,6 +158,15 @@ const ActionButton = styled.button<{ $isActive: boolean; $isStop?: boolean }>`
   }
 `;
 
+const Disclaimer = styled.div`
+  font-size: 11px;
+  color: ${COLORS.textMuted};
+  text-align: center;
+  padding: 0 20px;
+  opacity: 0.7;
+  line-height: 1.4;
+`;
+
 interface ChatInputProps {
   onSendMessage: (text: string) => void;
   isLoading: boolean;
@@ -276,6 +285,9 @@ export const ChatInput: React.FC<ChatInputProps> = ({
           </ActionButton>
         </InputForm>
       </GlowContainer>
+      <Disclaimer>
+        챗불이는 AI이며 실수할 수 있습니다. 중요한 정보는 직접 확인하세요.
+      </Disclaimer>
     </InputWrapper>
   );
 };

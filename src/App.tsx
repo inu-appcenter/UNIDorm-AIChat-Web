@@ -86,7 +86,7 @@ export default function App() {
                   timestamp={msg.timestamp}
                   isError={msg.isError}
                   isLast={index === currentRoom.messages.length - 1}
-                  onRetry={() => sendMessage(currentRoom.messages[index-1]?.content || "", true)}
+                  onRetry={() => sendMessage(currentRoom.messages[index-1]?.content || "", currentRoom.concept || "senior", true)}
                   onRegenerate={regenerateResponse}
                 />
               ))
@@ -94,7 +94,7 @@ export default function App() {
           </ChatArea>
 
           <ChatInput 
-            onSendMessage={(msg) => sendMessage(msg)} 
+            onSendMessage={(msg, concept) => sendMessage(msg, concept)} 
             isLoading={isLoading} 
             onStopGeneration={stopGeneration}
           />

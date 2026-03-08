@@ -1,7 +1,8 @@
 import React, { useState, useRef } from "react";
 import styled from "styled-components";
-import { Send, Square } from "lucide-react";
+import { Send, Square, ChevronDown } from "lucide-react";
 import { COLORS } from "../../constants/colors";
+import { type AiConcept } from "../../types/chat";
 
 const InputWrapper = styled.div`
   position: absolute;
@@ -11,6 +12,34 @@ const InputWrapper = styled.div`
   width: calc(100% - 40px);
   max-width: 760px;
   z-index: 20;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+`;
+
+const ConceptSelectorWrapper = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-left: 8px;
+`;
+
+const ConceptBadge = styled.div<{ $isActive: boolean }>`
+  background-color: ${(props) =>
+    props.$isActive ? COLORS.inuBlue : "#ffffff"};
+  color: ${(props) => (props.$isActive ? "#ffffff" : COLORS.textMuted)};
+  padding: 6px 14px;
+  border-radius: 18px;
+  font-size: 13px;
+  font-weight: 600;
+  border: 1px solid ${(props) => (props.$isActive ? COLORS.inuBlue : "#e0e0e0")};
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  cursor: default; // 임시 비활성화로 인한 커서 변경
+  opacity: ${(props) => (props.$isActive ? 1 : 0.6)};
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
 `;
 
 const InputForm = styled.form`
@@ -65,7 +94,8 @@ const ActionButton = styled.button<{ $isActive: boolean; $isStop?: boolean }>`
   display: flex;
   align-items: center;
   justify-content: center;
-  cursor: ${(props) => (props.$isActive || props.$isStop ? "pointer" : "default")};
+  cursor: ${(props) =>
+    props.$isActive || props.$isStop ? "pointer" : "default"};
   transition: all 0.2s ease;
   flex-shrink: 0;
   margin-bottom: 2px;
@@ -76,7 +106,7 @@ const ActionButton = styled.button<{ $isActive: boolean; $isStop?: boolean }>`
 `;
 
 interface ChatInputProps {
-  onSendMessage: (text: string) => void;
+  onSendMessage: (text: string, concept: AiConcept) => void;
   isLoading: boolean;
   onStopGeneration: () => void;
 }
@@ -87,6 +117,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
   onStopGeneration,
 }) => {
   const [input, setInput] = useState("");
+  const [concept] = useState<AiConcept>("senior"); // 선배컨셉 고정
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const handleInputResize = () => {
@@ -103,7 +134,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
       return;
     }
     if (input.trim()) {
-      onSendMessage(input);
+      onSendMessage(input, concept);
       setInput("");
       if (textareaRef.current) textareaRef.current.style.height = "auto";
     }
@@ -118,6 +149,18 @@ export const ChatInput: React.FC<ChatInputProps> = ({
 
   return (
     <InputWrapper>
+      <ConceptSelectorWrapper>
+        <ConceptBadge $isActive={true}>
+          선배컨셉(특화)
+          <ChevronDown size={14} style={{ opacity: 0.5 }} />
+        </ConceptBadge>
+        {/* 임시 비활성화된 다른 옵션들 - 코드 유지 */}
+        {/* 
+        <ConceptBadge $isActive={false} style={{ cursor: 'not-allowed' }}>
+          일반 대화
+        </ConceptBadge>
+        */}
+      </ConceptSelectorWrapper>
       <InputForm onSubmit={handleSubmit}>
         <TextInput
           ref={textareaRef}
@@ -128,7 +171,9 @@ export const ChatInput: React.FC<ChatInputProps> = ({
             handleInputResize();
           }}
           onKeyDown={handleKeyDown}
-          placeholder={isLoading ? "답변을 생성하고 있습니다..." : "질문을 입력하세요"}
+          placeholder={
+            isLoading ? "답변을 생성하고 있습니다..." : "질문을 입력하세요"
+          }
           disabled={isLoading}
         />
         <ActionButton
@@ -138,7 +183,11 @@ export const ChatInput: React.FC<ChatInputProps> = ({
           disabled={!isLoading && !input.trim()}
           title={isLoading ? "응답 중지" : "전송"}
         >
-          {isLoading ? <Square size={16} fill="currentColor" /> : <Send size={18} />}
+          {isLoading ? (
+            <Square size={16} fill="currentColor" />
+          ) : (
+            <Send size={18} />
+          )}
         </ActionButton>
       </InputForm>
     </InputWrapper>

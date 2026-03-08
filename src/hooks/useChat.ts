@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import type { ChatRoom, ChatMessage } from "../types/chat";
+import type { ChatRoom, ChatMessage, AiConcept } from "../types/chat";
 import { API_URL } from "../constants/api";
 
 const STORAGE_KEY = "unidorm_chat_rooms";
@@ -15,7 +15,7 @@ export const useChat = () => {
         console.error("Failed to parse rooms from localStorage", e);
       }
     }
-    return [{ id: Date.now().toString(), title: "새로운 대화", messages: [] }];
+    return [{ id: Date.now().toString(), title: "새로운 대화", messages: [], concept: "senior" }];
   });
 
   const [currentRoomId, setCurrentRoomId] = useState<string>(rooms[0].id);
@@ -47,6 +47,7 @@ export const useChat = () => {
       id: Date.now().toString(),
       title: "새로운 대화",
       messages: [],
+      concept: "senior",
     };
     setRooms([newRoom, ...rooms]);
     setCurrentRoomId(newRoom.id);
@@ -75,10 +76,11 @@ export const useChat = () => {
 
   const clearHistory = () => {
     if (window.confirm("모든 대화 내역을 삭제하시겠습니까?")) {
-      const initialRoom = {
+      const initialRoom: ChatRoom = {
         id: Date.now().toString(),
         title: "새로운 대화",
         messages: [],
+        concept: "senior",
       };
       setRooms([initialRoom]);
       setCurrentRoomId(initialRoom.id);
@@ -112,7 +114,7 @@ export const useChat = () => {
     }
   };
 
-  const sendMessage = async (text: string, isRetry: boolean = false) => {
+  const sendMessage = async (text: string, concept: AiConcept = "senior", isRetry: boolean = false) => {
     if (!text.trim() || isLoading) return;
 
     const userMsg: ChatMessage = { 
@@ -137,6 +139,7 @@ export const useChat = () => {
             ...room,
             title: isFirstMessage && !isRetry ? text.slice(0, 20) : room.title,
             messages: newMessages,
+            concept: concept,
           };
         }
         return room;
@@ -162,6 +165,7 @@ export const useChat = () => {
         body: JSON.stringify({
           question: text,
           history: slicedHistory,
+          concept: concept, // 컨셉 정보 전달
         }),
         signal: abortControllerRef.current.signal,
       });
@@ -226,7 +230,7 @@ export const useChat = () => {
       .find((m) => m.role === "user");
 
     if (lastUserMsg) {
-      sendMessage(lastUserMsg.content, true);
+      sendMessage(lastUserMsg.content, currentRoom.concept || "senior", true);
     }
   };
 

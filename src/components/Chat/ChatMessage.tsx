@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import styled, { keyframes } from "styled-components";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { Copy, Check, Bot, User, RefreshCw, ExternalLink } from "lucide-react";
+import { Copy, Check, Bot, RefreshCw, ExternalLink } from "lucide-react";
 import { COLORS } from "../../constants/colors";
 import type { ChatButton as ChatButtonType } from "../../types/chat";
 
@@ -31,7 +31,7 @@ const Avatar = styled.div<{ $isUser: boolean }>`
   justify-content: center;
   flex-shrink: 0;
   order: ${(props) => (props.$isUser ? 2 : 0)};
-  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
 `;
 
 const BubbleContainer = styled.div<{ $isUser: boolean }>`
@@ -54,31 +54,43 @@ const MessageBubble = styled.div<{ $isUser: boolean; $isError?: boolean }>`
     if (props.$isError) return "#fff1f0";
     return props.$isUser ? COLORS.inuBlue : COLORS.bgWhite;
   }};
-  
+
   color: ${(props) => {
     if (props.$isError) return "#ff4d4f";
     return props.$isUser ? "#ffffff" : COLORS.textDark;
   }};
 
   border: ${(props) => (props.$isError ? "1px solid #ffa39e" : "none")};
-  
+
   border-bottom-right-radius: ${(props) => (props.$isUser ? "6px" : "20px")};
   border-bottom-left-radius: ${(props) => (props.$isUser ? "20px" : "6px")};
 
   /* Markdown Styles */
-  p { margin: 0 0 8px 0; }
-  p:last-child { margin: 0; }
-  a { 
-    color: ${(props) => (props.$isUser ? COLORS.inuYellow : COLORS.inuBlue)}; 
-    text-decoration: underline; 
+  p {
+    margin: 0 0 8px 0;
+  }
+  p:last-child {
+    margin: 0;
+  }
+  a {
+    color: ${(props) => (props.$isUser ? COLORS.inuYellow : COLORS.inuBlue)};
+    text-decoration: underline;
     font-weight: 500;
     word-break: break-all;
   }
-  ul, ol { margin: 8px 0; padding-left: 24px; }
-  li { margin-bottom: 4px; }
-  strong { font-weight: 700; }
+  ul,
+  ol {
+    margin: 8px 0;
+    padding-left: 24px;
+  }
+  li {
+    margin-bottom: 4px;
+  }
+  strong {
+    font-weight: 700;
+  }
   code {
-    background-color: rgba(0,0,0,0.05);
+    background-color: rgba(0, 0, 0, 0.05);
     padding: 2px 6px;
     border-radius: 4px;
     font-family: monospace;
@@ -108,10 +120,10 @@ const ActionButton = styled.button`
   border-radius: 4px;
   font-size: 11px;
   transition: all 0.2s ease;
-  
+
   &:hover {
     color: ${COLORS.textDark};
-    background-color: rgba(0,0,0,0.05);
+    background-color: rgba(0, 0, 0, 0.05);
   }
 `;
 
@@ -148,15 +160,16 @@ const StyledButtonLink = styled.a<{ $primary?: boolean }>`
   font-weight: 500;
   text-decoration: none !important;
   transition: all 0.2s ease;
-  
-  background-color: ${props => props.$primary ? COLORS.inuBlue : "#f0f2f5"};
-  color: ${props => props.$primary ? "#ffffff" : COLORS.textDark} !important;
-  border: 1px solid ${props => props.$primary ? COLORS.inuBlue : "#e1e4e8"};
+
+  background-color: ${(props) => (props.$primary ? COLORS.inuBlue : "#f0f2f5")};
+  color: ${(props) =>
+    props.$primary ? "#ffffff" : COLORS.textDark} !important;
+  border: 1px solid ${(props) => (props.$primary ? COLORS.inuBlue : "#e1e4e8")};
 
   &:hover {
-    background-color: ${props => props.$primary ? "#002d6b" : "#e4e6e9"};
+    background-color: ${(props) => (props.$primary ? "#002d6b" : "#e4e6e9")};
     transform: translateY(-1px);
-    box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
   }
 
   &:active {
@@ -185,7 +198,7 @@ const cleanUrl = (url: string) => {
   }
   return {
     cleaned: url.substring(0, end),
-    rest: url.substring(end)
+    rest: url.substring(end),
   };
 };
 
@@ -194,17 +207,18 @@ const cleanUrl = (url: string) => {
  * Group 1, 2: [label](url)
  * Group 3: naked url
  */
-const COMBINED_LINK_REGEX = /\[([^\]]*)\]\((https?:\/\/[^\s)]+)\)|(https?:\/\/[^\s가-힣\]()]+)/g;
+const COMBINED_LINK_REGEX =
+  /\[([^\]]*)\]\((https?:\/\/[^\s)]+)\)|(https?:\/\/[^\s가-힣\]()]+)/g;
 
-export const ChatMessage: React.FC<ChatMessageProps> = ({ 
-  role, 
-  content, 
-  timestamp, 
+export const ChatMessage: React.FC<ChatMessageProps> = ({
+  role,
+  content,
+  timestamp,
   isError,
   isLast,
   onRetry,
   onRegenerate,
-  buttons 
+  buttons,
 }) => {
   const isUser = role === "user";
   const isLoading = !isUser && content === "";
@@ -213,7 +227,10 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
   const formatTime = (ts?: number) => {
     if (!ts) return "";
     const date = new Date(ts);
-    return date.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' });
+    return date.toLocaleTimeString("ko-KR", {
+      hour: "2-digit",
+      minute: "2-digit",
+    });
   };
 
   const handleCopy = async () => {
@@ -228,50 +245,58 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
 
   const renderContent = () => {
     // 텍스트 전처리 (마크다운 엔진 전달용 또는 직접 렌더링용)
-    const processed = content.replace(COMBINED_LINK_REGEX, (match, label, link, naked) => {
-      if (link) {
-        // 이미 마크다운 링크인 경우: URL 정제 후 유지
-        const { cleaned, rest } = cleanUrl(link);
-        return `[${label}](${cleaned})${rest}`;
-      } else if (naked) {
-        // 일반 URL인 경우: 정제 후 <>로 격리
-        const { cleaned, rest } = cleanUrl(naked);
-        return `<${cleaned}>${rest}`;
-      }
-      return match;
-    });
+    const processed = content.replace(
+      COMBINED_LINK_REGEX,
+      (match, label, link, naked) => {
+        if (link) {
+          // 이미 마크다운 링크인 경우: URL 정제 후 유지
+          const { cleaned, rest } = cleanUrl(link);
+          return `[${label}](${cleaned})${rest}`;
+        } else if (naked) {
+          // 일반 URL인 경우: 정제 후 <>로 격리
+          const { cleaned, rest } = cleanUrl(naked);
+          return `<${cleaned}>${rest}`;
+        }
+        return match;
+      },
+    );
 
     if (isUser) {
-        // 사용자 메시지는 마크다운을 적용하지 않고 텍스트로 처리하되 링크만 수동 연결
-        // (필요 시 사용자 메시지도 마크다운을 적용하려면 아래 AI 로직과 통일 가능)
-        const parts: (string | React.JSX.Element)[] = [];
-        let lastIndex = 0;
-        let match;
-        const regex = new RegExp(COMBINED_LINK_REGEX);
-        
-        while ((match = regex.exec(content)) !== null) {
-            parts.push(content.substring(lastIndex, match.index));
-            const [,, link, naked] = match;
-            const targetUrl = link || naked;
-            const { cleaned, rest } = cleanUrl(targetUrl);
-            
-            parts.push(
-                <a key={match.index} href={cleaned} target="_blank" rel="noopener noreferrer">
-                    {cleaned}
-                </a>
-            );
-            parts.push(rest);
-            lastIndex = regex.lastIndex;
-        }
-        parts.push(content.substring(lastIndex));
-        return parts;
+      // 사용자 메시지는 마크다운을 적용하지 않고 텍스트로 처리하되 링크만 수동 연결
+      // (필요 시 사용자 메시지도 마크다운을 적용하려면 아래 AI 로직과 통일 가능)
+      const parts: (string | React.JSX.Element)[] = [];
+      let lastIndex = 0;
+      let match;
+      const regex = new RegExp(COMBINED_LINK_REGEX);
+
+      while ((match = regex.exec(content)) !== null) {
+        parts.push(content.substring(lastIndex, match.index));
+        const [, , link, naked] = match;
+        const targetUrl = link || naked;
+        const { cleaned, rest } = cleanUrl(targetUrl);
+
+        parts.push(
+          <a
+            key={match.index}
+            href={cleaned}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            {cleaned}
+          </a>,
+        );
+        parts.push(rest);
+        lastIndex = regex.lastIndex;
+      }
+      parts.push(content.substring(lastIndex));
+      return parts;
     }
 
     return (
       <ReactMarkdown 
         remarkPlugins={[remarkGfm]}
         components={{
-          a: ({ node, ...props }) => (
+          a: ({ ...props }) => (
             <a {...props} target="_blank" rel="noopener noreferrer" />
           )
         }}
@@ -288,7 +313,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
           <Bot size={20} />
         </Avatar>
       )}
-      
+
       <BubbleContainer $isUser={isUser}>
         <MessageBubble $isUser={isUser} $isError={isError}>
           {isLoading ? (
@@ -303,10 +328,10 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
               {buttons && buttons.length > 0 && (
                 <ButtonContainer>
                   {buttons.map((btn, idx) => (
-                    <StyledButtonLink 
-                      key={idx} 
-                      href={btn.url} 
-                      target="_blank" 
+                    <StyledButtonLink
+                      key={idx}
+                      href={btn.url}
+                      target="_blank"
                       rel="noopener noreferrer"
                       $primary={btn.primary}
                     >
@@ -320,17 +345,21 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
           )}
         </MessageBubble>
 
-        {(!isLoading && (timestamp || !isUser)) && (
+        {!isLoading && (timestamp || !isUser) && (
           <MessageFooter $isUser={isUser}>
             {timestamp && <span>{formatTime(timestamp)}</span>}
-            
+
             {!isUser && !isError && content && (
               <>
                 <ActionButton onClick={handleCopy} title="답변 복사">
-                  {copied ? <Check size={12} color="#52c41a" /> : <Copy size={12} />}
+                  {copied ? (
+                    <Check size={12} color="#52c41a" />
+                  ) : (
+                    <Copy size={12} />
+                  )}
                   {copied ? "복사됨" : "복사"}
                 </ActionButton>
-                
+
                 {isLast && onRegenerate && (
                   <ActionButton onClick={onRegenerate} title="다시 생성">
                     <RefreshCw size={12} /> 다시 생성

@@ -13,6 +13,7 @@ const BUTTON_MAP: Record<string, { label: string; url: string }> = {
   DORM_RESERVE: { label: "세미나실 예약 페이지", url: "https://dorm.inu.ac.kr/dorm/13698/subview.do" },
 };
 
+
 export const useChat = () => {
   const [selectedChatbotType, setSelectedChatbotType] = useState<ChatbotType>("special");
   const [rooms, setRooms] = useState<ChatRoom[]>(() => {

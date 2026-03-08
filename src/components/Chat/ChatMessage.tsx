@@ -47,7 +47,8 @@ const MessageBubble = styled.div<{ $isUser: boolean; $isError?: boolean }>`
   font-size: 15px;
   line-height: 1.6;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
-  word-break: break-word;
+  word-break: keep-all;
+  overflow-wrap: anywhere;
 
   background-color: ${(props) => {
     if (props.$isError) return "#fff1f0";

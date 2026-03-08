@@ -1,4 +1,4 @@
-import { useState } from "react";
+import React, { useState } from "react";
 import styled from "styled-components";
 import { GlobalStyle } from "./styles/GlobalStyle";
 import { useChat } from "./hooks/useChat";
@@ -29,6 +29,28 @@ const Disclaimer = styled.div`
   margin-bottom: 24px;
   word-break: keep-all;
   overflow-wrap: anywhere;
+`;
+
+const DateSeparatorContainer = styled.div`
+  display: flex;
+  align-items: center;
+  width: 100%;
+  max-width: 800px;
+  margin: 32px 0 16px 0;
+`;
+
+const DateLine = styled.div`
+  flex: 1;
+  height: 1px;
+  background-color: #eeeeee;
+`;
+
+const DateText = styled.div`
+  padding: 0 16px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #999999;
+  background-color: transparent;
 `;
 
 export default function App() {
@@ -65,6 +87,28 @@ export default function App() {
     setIsSidebarOpen(!isSidebarOpen);
   };
 
+  const formatSeparatorDate = (timestamp?: number) => {
+    if (!timestamp) return "";
+    const date = new Date(timestamp);
+    return date.toLocaleDateString("ko-KR", {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+      weekday: "long",
+    });
+  };
+
+  const isDifferentDay = (idx: number) => {
+    if (idx === 0) return true;
+    const prev = currentRoom.messages[idx - 1].timestamp;
+    const curr = currentRoom.messages[idx].timestamp;
+    if (!prev || !curr) return false;
+
+    const prevDate = new Date(prev).toDateString();
+    const currDate = new Date(curr).toDateString();
+    return prevDate !== currDate;
+  };
+
   return (
     <>
       <GlobalStyle />
@@ -99,22 +143,30 @@ export default function App() {
             ) : (
               <>
                 {currentRoom.messages.map((msg, index) => (
-                  <ChatMessage
-                    key={index}
-                    role={msg.role}
-                    content={msg.content}
-                    timestamp={msg.timestamp}
-                    isError={msg.isError}
-                    buttons={msg.buttons}
-                    isLast={index === currentRoom.messages.length - 1}
-                    onRetry={() =>
-                      sendMessage(
-                        currentRoom.messages[index - 1]?.content || "",
-                        true,
-                      )
-                    }
-                    onRegenerate={regenerateResponse}
-                  />
+                  <React.Fragment key={index}>
+                    {isDifferentDay(index) && (
+                      <DateSeparatorContainer>
+                        <DateLine />
+                        <DateText>{formatSeparatorDate(msg.timestamp)}</DateText>
+                        <DateLine />
+                      </DateSeparatorContainer>
+                    )}
+                    <ChatMessage
+                      role={msg.role}
+                      content={msg.content}
+                      timestamp={msg.timestamp}
+                      isError={msg.isError}
+                      buttons={msg.buttons}
+                      isLast={index === currentRoom.messages.length - 1}
+                      onRetry={() =>
+                        sendMessage(
+                          currentRoom.messages[index - 1]?.content || "",
+                          true,
+                        )
+                      }
+                      onRegenerate={regenerateResponse}
+                    />
+                  </React.Fragment>
                 ))}
                 <Disclaimer>
                   챗불이는 AI이며 실수할 수 있습니다.

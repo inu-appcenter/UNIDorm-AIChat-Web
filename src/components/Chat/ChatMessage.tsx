@@ -38,7 +38,7 @@ const BubbleContainer = styled.div<{ $isUser: boolean }>`
   display: flex;
   flex-direction: column;
   align-items: ${(props) => (props.$isUser ? "flex-end" : "flex-start")};
-  max-width: calc(100% - 48px);
+  max-width: ${(props) => (props.$isUser ? "90%" : "calc(100% - 48px)")};
 `;
 
 const MessageBubble = styled.div<{ $isUser: boolean; $isError?: boolean }>`
@@ -283,9 +283,11 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
 
   return (
     <MessageRow $isUser={isUser}>
-      <Avatar $isUser={isUser}>
-        {isUser ? <User size={20} /> : <Bot size={20} />}
-      </Avatar>
+      {!isUser && (
+        <Avatar $isUser={isUser}>
+          <Bot size={20} />
+        </Avatar>
+      )}
       
       <BubbleContainer $isUser={isUser}>
         <MessageBubble $isUser={isUser} $isError={isError}>

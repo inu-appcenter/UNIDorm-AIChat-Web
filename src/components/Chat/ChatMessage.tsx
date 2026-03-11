@@ -331,7 +331,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
                     <StyledButtonLink
                       key={idx}
                       href={btn.url}
-                      target="_blank"
+                      target="_top"
                       rel="noopener noreferrer"
                       $primary={btn.primary}
                     >

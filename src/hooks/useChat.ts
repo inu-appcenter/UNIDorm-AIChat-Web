@@ -3,6 +3,7 @@ import type { ChatRoom, ChatMessage } from "../types/chat";
 import { CLASSIFY_URL, CHAT_URL, type ChatbotType } from "../constants/api";
 
 const STORAGE_KEY = "unidorm_chat_rooms";
+const TOKEN_KEY = "unidorm_access_token";
 const MAX_HISTORY_LENGTH = 10;
 
 const BUTTON_MAP: Record<string, { label: string; url: string }> = {
@@ -49,6 +50,25 @@ export const useChat = () => {
   const currentRoom =
     rooms.find((room) => room.id === currentRoomId) || rooms[0];
 
+  // 1. URL에서 토큰 추출 및 정제 로직
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const token = urlParams.get("token");
+
+    if (token) {
+      localStorage.setItem(TOKEN_KEY, token);
+      const newUrl = window.location.pathname;
+      window.history.replaceState({}, "", newUrl);
+      console.log("Token saved and URL cleaned");
+    } else {
+      // 페이지 로드 시 토큰이 아예 없는 경우 처리
+      const savedToken = localStorage.getItem(TOKEN_KEY);
+      if (!savedToken) {
+        handleRequiredLogin();
+      }
+    }
+  }, []);
+
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(rooms));
   }, [rooms]);
@@ -58,6 +78,17 @@ export const useChat = () => {
       chatAreaRef.current.scrollTop = chatAreaRef.current.scrollHeight;
     }
   }, [currentRoom.messages]);
+
+  // 로그인 유도 처리 함수
+  const handleRequiredLogin = () => {
+    if (
+      window.confirm(
+        "로그인이 필요한 서비스입니다. 로그인 페이지로 이동하시겠습니까?",
+      )
+    ) {
+      window.location.href = "https://unidorm.inuappcenter.kr/login";
+    }
+  };
 
   const createNewRoom = () => {
     const emptyRoom = rooms.find((room) => room.messages.length === 0);
@@ -179,6 +210,13 @@ export const useChat = () => {
   const sendMessage = async (text: string, isRetry: boolean = false) => {
     if (!text.trim() || isLoading) return;
 
+    // 2. 메시지 전송 시점에 토큰 체크
+    const savedToken = localStorage.getItem(TOKEN_KEY);
+    if (!savedToken) {
+      handleRequiredLogin();
+      return;
+    }
+
     const userMsg: ChatMessage = {
       role: "user",
       content: text,
@@ -222,15 +260,27 @@ export const useChat = () => {
       let activeChatbotType = selectedChatbotType;
       let prefixContent = "";
 
+      const headers: HeadersInit = {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${savedToken}`,
+      };
+
       if (selectedChatbotType === "classify") {
         updateAiMessage("질문을 분류하는 중입니다...");
 
         const classifyResponse = await fetch(CLASSIFY_URL, {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: headers,
           body: JSON.stringify({ text: text }),
           signal: abortControllerRef.current.signal,
         });
+
+        // 3. 401 Unauthorized 처리 (토큰 만료 등)
+        if (classifyResponse.status === 401) {
+          localStorage.removeItem(TOKEN_KEY);
+          handleRequiredLogin();
+          return;
+        }
 
         if (!classifyResponse.ok) throw new Error("분류 서버 응답 실패");
 
@@ -312,7 +362,7 @@ export const useChat = () => {
 
       const response = await fetch(CHAT_URL, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: headers,
         body: JSON.stringify({
           question: text,
           history: slicedHistory,
@@ -320,6 +370,13 @@ export const useChat = () => {
         }),
         signal: abortControllerRef.current.signal,
       });
+
+      // 채팅 서버 응답에서도 401 처리
+      if (response.status === 401) {
+        localStorage.removeItem(TOKEN_KEY);
+        handleRequiredLogin();
+        return;
+      }
 
       if (!response.body) throw new Error("ReadableStream not supported");
 

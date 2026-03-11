@@ -3,7 +3,7 @@ import type { ChatRoom, ChatMessage } from "../types/chat";
 import { CLASSIFY_URL, CHAT_URL, type ChatbotType } from "../constants/api";
 
 const STORAGE_KEY = "unidorm_chat_rooms";
-const TOKEN_KEY = "unidorm_access_token"; // 토큰 저장 키 추가
+const TOKEN_KEY = "unidorm_access_token";
 const MAX_HISTORY_LENGTH = 10;
 
 const BUTTON_MAP: Record<string, { label: string; url: string }> = {
@@ -50,19 +50,22 @@ export const useChat = () => {
   const currentRoom =
     rooms.find((room) => room.id === currentRoomId) || rooms[0];
 
-  // 1. URL에서 토큰 추출 및 정제 로직 추가
+  // 1. URL에서 토큰 추출 및 정제 로직
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
     const token = urlParams.get("token");
 
     if (token) {
-      // 토큰 저장
       localStorage.setItem(TOKEN_KEY, token);
-
-      // URL에서 토큰 파라미터 제거 (보안 및 미관상 목적)
       const newUrl = window.location.pathname;
       window.history.replaceState({}, "", newUrl);
       console.log("Token saved and URL cleaned");
+    } else {
+      // 페이지 로드 시 토큰이 아예 없는 경우 처리
+      const savedToken = localStorage.getItem(TOKEN_KEY);
+      if (!savedToken) {
+        handleRequiredLogin();
+      }
     }
   }, []);
 
@@ -75,6 +78,17 @@ export const useChat = () => {
       chatAreaRef.current.scrollTop = chatAreaRef.current.scrollHeight;
     }
   }, [currentRoom.messages]);
+
+  // 로그인 유도 처리 함수
+  const handleRequiredLogin = () => {
+    if (
+      window.confirm(
+        "로그인이 필요한 서비스입니다. 로그인 페이지로 이동하시겠습니까?",
+      )
+    ) {
+      window.location.href = "https://unidorm.inuappcenter.kr/login";
+    }
+  };
 
   const createNewRoom = () => {
     const emptyRoom = rooms.find((room) => room.messages.length === 0);
@@ -125,7 +139,6 @@ export const useChat = () => {
       setRooms([initialRoom]);
       setCurrentRoomId(initialRoom.id);
       localStorage.removeItem(STORAGE_KEY);
-      localStorage.removeItem(TOKEN_KEY); // 토큰도 함께 삭제할지 선택 사항
     }
   };
 
@@ -197,8 +210,12 @@ export const useChat = () => {
   const sendMessage = async (text: string, isRetry: boolean = false) => {
     if (!text.trim() || isLoading) return;
 
-    // 저장된 토큰 가져오기
+    // 2. 메시지 전송 시점에 토큰 체크
     const savedToken = localStorage.getItem(TOKEN_KEY);
+    if (!savedToken) {
+      handleRequiredLogin();
+      return;
+    }
 
     const userMsg: ChatMessage = {
       role: "user",
@@ -243,13 +260,10 @@ export const useChat = () => {
       let activeChatbotType = selectedChatbotType;
       let prefixContent = "";
 
-      // 공통 헤더 설정 (토큰 포함)
       const headers: HeadersInit = {
         "Content-Type": "application/json",
+        Authorization: `Bearer ${savedToken}`,
       };
-      if (savedToken) {
-        headers["Authorization"] = `Bearer ${savedToken}`;
-      }
 
       if (selectedChatbotType === "classify") {
         updateAiMessage("질문을 분류하는 중입니다...");
@@ -260,6 +274,13 @@ export const useChat = () => {
           body: JSON.stringify({ text: text }),
           signal: abortControllerRef.current.signal,
         });
+
+        // 3. 401 Unauthorized 처리 (토큰 만료 등)
+        if (classifyResponse.status === 401) {
+          localStorage.removeItem(TOKEN_KEY);
+          handleRequiredLogin();
+          return;
+        }
 
         if (!classifyResponse.ok) throw new Error("분류 서버 응답 실패");
 
@@ -349,6 +370,13 @@ export const useChat = () => {
         }),
         signal: abortControllerRef.current.signal,
       });
+
+      // 채팅 서버 응답에서도 401 처리
+      if (response.status === 401) {
+        localStorage.removeItem(TOKEN_KEY);
+        handleRequiredLogin();
+        return;
+      }
 
       if (!response.body) throw new Error("ReadableStream not supported");
 

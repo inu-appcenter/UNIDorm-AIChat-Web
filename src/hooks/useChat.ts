@@ -3,6 +3,7 @@ import type { ChatRoom, ChatMessage } from "../types/chat";
 import { CLASSIFY_URL, CHAT_URL, type ChatbotType } from "../constants/api";
 
 const STORAGE_KEY = "unidorm_chat_rooms";
+const TOKEN_KEY = "unidorm_access_token"; // 토큰 저장 키 추가
 const MAX_HISTORY_LENGTH = 10;
 
 const BUTTON_MAP: Record<string, { label: string; url: string }> = {
@@ -48,6 +49,22 @@ export const useChat = () => {
 
   const currentRoom =
     rooms.find((room) => room.id === currentRoomId) || rooms[0];
+
+  // 1. URL에서 토큰 추출 및 정제 로직 추가
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const token = urlParams.get("token");
+
+    if (token) {
+      // 토큰 저장
+      localStorage.setItem(TOKEN_KEY, token);
+
+      // URL에서 토큰 파라미터 제거 (보안 및 미관상 목적)
+      const newUrl = window.location.pathname;
+      window.history.replaceState({}, "", newUrl);
+      console.log("Token saved and URL cleaned");
+    }
+  }, []);
 
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(rooms));
@@ -108,6 +125,7 @@ export const useChat = () => {
       setRooms([initialRoom]);
       setCurrentRoomId(initialRoom.id);
       localStorage.removeItem(STORAGE_KEY);
+      localStorage.removeItem(TOKEN_KEY); // 토큰도 함께 삭제할지 선택 사항
     }
   };
 
@@ -179,6 +197,9 @@ export const useChat = () => {
   const sendMessage = async (text: string, isRetry: boolean = false) => {
     if (!text.trim() || isLoading) return;
 
+    // 저장된 토큰 가져오기
+    const savedToken = localStorage.getItem(TOKEN_KEY);
+
     const userMsg: ChatMessage = {
       role: "user",
       content: text,
@@ -222,12 +243,20 @@ export const useChat = () => {
       let activeChatbotType = selectedChatbotType;
       let prefixContent = "";
 
+      // 공통 헤더 설정 (토큰 포함)
+      const headers: HeadersInit = {
+        "Content-Type": "application/json",
+      };
+      if (savedToken) {
+        headers["Authorization"] = `Bearer ${savedToken}`;
+      }
+
       if (selectedChatbotType === "classify") {
         updateAiMessage("질문을 분류하는 중입니다...");
 
         const classifyResponse = await fetch(CLASSIFY_URL, {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: headers,
           body: JSON.stringify({ text: text }),
           signal: abortControllerRef.current.signal,
         });
@@ -312,7 +341,7 @@ export const useChat = () => {
 
       const response = await fetch(CHAT_URL, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: headers,
         body: JSON.stringify({
           question: text,
           history: slicedHistory,

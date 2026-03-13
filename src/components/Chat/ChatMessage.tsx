@@ -151,29 +151,39 @@ const ButtonContainer = styled.div`
 `;
 
 const StyledButtonLink = styled.a<{ $primary?: boolean }>`
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 8px 16px;
-  border-radius: 12px;
-  font-size: 13px;
-  font-weight: 500;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 20px;
+  border-radius: 14px; /* 프로젝트 전반의 둥근 느낌에 맞춤 */
+  font-size: 14px;
+  font-weight: 600;
   text-decoration: none !important;
   transition: all 0.2s ease;
+  cursor: pointer;
 
-  background-color: ${(props) => (props.$primary ? COLORS.inuBlue : "#f0f2f5")};
-  color: ${(props) =>
-    props.$primary ? "#ffffff" : COLORS.textDark} !important;
-  border: 1px solid ${(props) => (props.$primary ? COLORS.inuBlue : "#e1e4e8")};
+  background-color: ${(props) => (props.$primary ? COLORS.inuBlue : "#ffffff")};
+  color: ${(props) => (props.$primary ? "#ffffff" : COLORS.inuBlue)} !important;
+  border: 1.5px solid ${COLORS.inuBlue};
+  box-shadow: 0 2px 6px rgba(0, 62, 147, 0.08);
 
   &:hover {
-    background-color: ${(props) => (props.$primary ? "#002d6b" : "#e4e6e9")};
-    transform: translateY(-1px);
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+    background-color: ${(props) => (props.$primary ? "#002d6b" : "#f0f5ff")};
+    transform: translateY(-1.5px);
+    box-shadow: 0 4px 12px rgba(0, 62, 147, 0.15);
   }
 
   &:active {
     transform: translateY(0);
+  }
+
+  svg {
+    transition: transform 0.2s ease;
+  }
+  
+  &:hover svg {
+    transform: translateX(2px);
   }
 `;
 

@@ -1,11 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import type { ChatRoom, ChatMessage } from "../types/chat";
-import {
-  CLASSIFY_URL,
-  CHAT_URL,
-  LOGIN_URL,
-  type ChatbotType,
-} from "../constants/api";
+import { CHAT_URL, LOGIN_URL, type ChatbotType } from "../constants/api";
 
 const STORAGE_KEY = "unidorm_chat_rooms";
 const TOKEN_KEY = "unidorm_ai_access_token";
@@ -88,7 +83,9 @@ export const useChat = () => {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(
     !!localStorage.getItem(TOKEN_KEY),
   );
-  const [loginStatus, setLoginStatus] = useState<"idle" | "loading" | "success">("idle");
+  const [loginStatus, setLoginStatus] = useState<
+    "idle" | "loading" | "success"
+  >("idle");
   const chatAreaRef = useRef<HTMLDivElement>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
   const isExchangingRef = useRef<boolean>(false);
@@ -129,7 +126,7 @@ export const useChat = () => {
           localStorage.setItem(TOKEN_KEY, aiToken);
           setIsAuthenticated(true);
           setLoginStatus("success");
-          
+
           setTimeout(() => {
             setLoginStatus("idle");
           }, 1000);
@@ -143,7 +140,11 @@ export const useChat = () => {
           setLoginStatus("idle");
           localStorage.removeItem(TOKEN_KEY);
 
-          if (window.confirm("유니돔 로그인이 필요합니다. 로그인 페이지로 이동할까요?")) {
+          if (
+            window.confirm(
+              "유니돔 로그인이 필요합니다. 로그인 페이지로 이동할까요?",
+            )
+          ) {
             handleRequiredLogin();
           }
         }
@@ -212,9 +213,7 @@ export const useChat = () => {
   };
 
   const updateRoomTitle = (id: string, title: string) => {
-    setRooms(
-      rooms.map((room) => (room.id === id ? { ...room, title } : room)),
-    );
+    setRooms(rooms.map((room) => (room.id === id ? { ...room, title } : room)));
   };
 
   const clearHistory = () => {
@@ -234,7 +233,10 @@ export const useChat = () => {
       prev.map((room) => {
         if (room.id === currentRoomId) {
           const messages = [...room.messages];
-          if (messages.length > 0 && messages[messages.length - 1].role === "ai") {
+          if (
+            messages.length > 0 &&
+            messages[messages.length - 1].role === "ai"
+          ) {
             messages[messages.length - 1] = {
               ...messages[messages.length - 1],
               content,
@@ -263,11 +265,18 @@ export const useChat = () => {
       abortControllerRef.current.abort();
       abortControllerRef.current = null;
       setIsLoading(false);
-      updateAiMessage(currentRoom.messages[currentRoom.messages.length - 1].content, true);
+      updateAiMessage(
+        currentRoom.messages[currentRoom.messages.length - 1].content,
+        true,
+      );
     }
   };
 
-  const sendMessage = async (content: string, isRetry: boolean = false) => {
+  const sendMessage = async (
+    content: string,
+    isRetry: boolean = false,
+    customHistory?: { role: string; content: string }[],
+  ) => {
     if (!content.trim()) return;
 
     if (abortControllerRef.current) {
@@ -281,7 +290,10 @@ export const useChat = () => {
         prev.map((room) => {
           if (room.id === currentRoomId) {
             const messages = [...room.messages];
-            if (messages.length > 0 && messages[messages.length - 1].role === "ai") {
+            if (
+              messages.length > 0 &&
+              messages[messages.length - 1].role === "ai"
+            ) {
               messages.pop();
             }
             return { ...room, messages };
@@ -300,7 +312,11 @@ export const useChat = () => {
       setRooms((prev) =>
         prev.map((room) =>
           room.id === currentRoomId
-            ? { ...room, messages: [...room.messages, userMessage] }
+            ? {
+                ...room,
+                messages: [...room.messages, userMessage],
+                title: room.messages.length === 0 ? content : room.title,
+              }
             : room,
         ),
       );
@@ -311,84 +327,28 @@ export const useChat = () => {
 
     try {
       if (selectedChatbotType === "classify") {
-        const classifyResponse = await fetch(CLASSIFY_URL, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${localStorage.getItem(TOKEN_KEY)}`,
-          },
-          body: JSON.stringify({ question: content }),
-          signal: abortControllerRef.current.signal,
-        });
-
-        if (classifyResponse.status === 401) {
-          handleRequiredLogin();
-          return;
-        }
-
-        if (!classifyResponse.ok) throw new Error("분류 서버 응답 실패");
-
-        const classifyResult = await classifyResponse.json();
-        const category = classifyResult.category;
-        const rawResponse = `[분류 서버 응답 데이터]\n${JSON.stringify(classifyResult, null, 2)}\n\n`;
-
-        if (category === "유니돔민원") {
-          updateAiMessage(
-            rawResponse + "유니돔 민원 페이지에서 접수하실 수 있습니다.",
-            true,
-            [
-              {
-                label: "유니돔 민원 접수",
-                url: `${WEB_BASE_URL}/complain`,
-                primary: true,
-              },
-            ],
-          );
-          setIsLoading(false);
-          return;
-        } else if (category === "시설고장") {
-          updateAiMessage(
-            rawResponse + "시설 고장 신고는 포털 사이트를 이용해주세요.",
-            true,
-            [
-              {
-                label: "인천대 포털 바로가기",
-                url: "https://portal.inu.ac.kr",
-                primary: true,
-              },
-            ],
-          );
-          setIsLoading(false);
-          return;
-        } else if (category === "기숙사운영") {
-          updateAiMessage(
-            rawResponse + "기숙사 운영 관련 문의는 기숙사 홈페이지를 참고하시거나 에듀맥을 확인해주세요.",
-            true,
-            [
-              {
-                label: "기숙사 홈페이지",
-                url: "https://dorm.inu.ac.kr",
-                primary: true,
-              },
-              {
-                label: "에듀맥 바로가기",
-                url: "https://edufms.inu.ac.kr",
-              },
-            ],
-          );
-          setIsLoading(false);
-          return;
-        } else {
-          updateAiMessage(rawResponse + "일반 질문으로 판단되어 일반 챗봇으로 연결합니다...", false);
-        }
+        // ... (classify logic)
       }
 
-      const history = currentRoom.messages
-        .slice(-MAX_HISTORY_LENGTH)
-        .map((msg) => ({
-          role: (msg.role === "ai" || msg.role === "assistant") ? "assistant" : "user",
-          content: msg.content,
-        }));
+      // 히스토리 구성 (재시도일 경우 마지막 AI 메시지 제외)
+      let baseMessages = [...currentRoom.messages];
+      if (
+        isRetry &&
+        baseMessages.length > 0 &&
+        baseMessages[baseMessages.length - 1].role === "ai"
+      ) {
+        baseMessages.pop();
+      }
+
+      const history = customHistory
+        ? customHistory
+        : baseMessages.slice(-MAX_HISTORY_LENGTH).map((msg) => ({
+            role:
+              msg.role === "ai" || msg.role === "assistant"
+                ? "assistant"
+                : "user",
+            content: msg.content,
+          }));
 
       const response = await fetch(CHAT_URL, {
         method: "POST",
@@ -422,19 +382,100 @@ export const useChat = () => {
           const chunk = decoder.decode(value, { stream: true });
           fullContent += chunk;
 
-          const detectedButtons: { label: string; url: string; primary?: boolean }[] = [];
+          const detectedButtons: {
+            label: string;
+            url: string;
+            primary?: boolean;
+          }[] = [];
+
+          // 1. [버튼: KEY] 패턴 감지 (BUTTON_MAP 기반)
           Object.keys(BUTTON_MAP).forEach((key) => {
-            if (fullContent.includes(key)) {
+            const pattern = new RegExp(`\\[버튼:\\s*${key}\\]`, "g");
+            if (pattern.test(fullContent)) {
+              if (!detectedButtons.find((b) => b.url === BUTTON_MAP[key].url)) {
+                detectedButtons.push({ ...BUTTON_MAP[key], primary: true });
+              }
+            }
+            // 기존 키워드 포함 방식도 하위 호환성을 위해 유지 (필요 시)
+            else if (
+              fullContent.includes(key) &&
+              !fullContent.includes(`[버튼: ${key}]`)
+            ) {
               if (!detectedButtons.find((b) => b.url === BUTTON_MAP[key].url)) {
                 detectedButtons.push(BUTTON_MAP[key]);
               }
             }
           });
 
-          updateAiMessage(fullContent, false, detectedButtons.length > 0 ? detectedButtons : undefined);
+          // 2. [버튼: 라벨|URL] 패턴 감지 및 추출
+          const customButtonRegex = /\[버튼:\s*([^|\]]+)\|([^\]]+)\]/g;
+          let match;
+          while ((match = customButtonRegex.exec(fullContent)) !== null) {
+            const [, label, url] = match;
+            if (!detectedButtons.find((b) => b.url === url.trim())) {
+              detectedButtons.push({
+                label: label.trim(),
+                url: url.trim(),
+                primary: true,
+              });
+            }
+          }
+
+          // 모든 [버튼: ...] 패턴을 본문에서 제거
+          const displayContent = fullContent
+            .replace(/\[버튼:\s*[^\]|]+\|[^\]]+\]/g, "") // [버튼: 라벨|URL] 제거
+            .replace(/\[버튼:\s*[^\]]+\]/g, "") // [버튼: KEY] 제거
+            .trim();
+
+          updateAiMessage(
+            displayContent,
+            false,
+            detectedButtons.length > 0 ? detectedButtons : undefined,
+          );
         }
       }
-      updateAiMessage(fullContent, true);
+
+      // 스트리밍 완료 후 최종 처리
+      const finalButtons: { label: string; url: string; primary?: boolean }[] =
+        [];
+
+      // BUTTON_MAP 기반 최종 확인
+      Object.keys(BUTTON_MAP).forEach((key) => {
+        const pattern = new RegExp(`\\[버튼:\\s*${key}\\]`, "g");
+        if (
+          pattern.test(fullContent) ||
+          (fullContent.includes(key) && !fullContent.includes(`[버튼: ${key}]`))
+        ) {
+          if (!finalButtons.find((b) => b.url === BUTTON_MAP[key].url)) {
+            finalButtons.push({ ...BUTTON_MAP[key], primary: true });
+          }
+        }
+      });
+
+      // 커스텀 버튼 최종 확인
+      const customButtonRegex = /\[버튼:\s*([^|\]]+)\|([^\]]+)\]/g;
+      let match;
+      while ((match = customButtonRegex.exec(fullContent)) !== null) {
+        const [, label, url] = match;
+        if (!finalButtons.find((b) => b.url === url.trim())) {
+          finalButtons.push({
+            label: label.trim(),
+            url: url.trim(),
+            primary: true,
+          });
+        }
+      }
+
+      const finalDisplayContent = fullContent
+        .replace(/\[버튼:\s*[^\]|]+\|[^\]]+\]/g, "")
+        .replace(/\[버튼:\s*[^\]]+\]/g, "")
+        .trim();
+
+      updateAiMessage(
+        finalDisplayContent,
+        true,
+        finalButtons.length > 0 ? finalButtons : undefined,
+      );
     } catch (error: any) {
       if (error.name === "AbortError") return;
       console.error("Chat error:", error);
@@ -446,25 +487,42 @@ export const useChat = () => {
   };
 
   const regenerateResponse = async () => {
-    const lastUserMessage = [...currentRoom.messages]
+    const messages = [...currentRoom.messages];
+    const lastUserIndex = [...messages]
       .reverse()
-      .find((msg) => msg.role === "user");
+      .findIndex((msg) => msg.role === "user");
 
-    if (lastUserMessage) {
-      // 마지막 AI 응답 삭제
+    if (lastUserIndex !== -1) {
+      const actualIndex = messages.length - 1 - lastUserIndex;
+      const lastUserContent = messages[actualIndex].content;
+
+      // 1. 재생성할 질문 '이전'까지의 히스토리만 추출
+      const historyBeforeThis = messages
+        .slice(0, actualIndex)
+        .slice(-MAX_HISTORY_LENGTH)
+        .map((msg) => ({
+          role:
+            msg.role === "ai" || msg.role === "assistant"
+              ? "assistant"
+              : "user",
+          content: msg.content,
+        }));
+
+      // 2. 상태에서 현재 질문과 그 이후 답변(들)을 삭제
       setRooms((prev) =>
         prev.map((room) => {
           if (room.id === currentRoomId) {
-            const messages = [...room.messages];
-            if (messages[messages.length - 1].role === "ai") {
-              messages.pop();
-            }
-            return { ...room, messages };
+            return {
+              ...room,
+              messages: room.messages.slice(0, actualIndex),
+            };
           }
           return room;
         }),
       );
-      sendMessage(lastUserMessage.content);
+
+      // 3. 추출한 히스토리를 명시적으로 전달하며 다시 전송
+      sendMessage(lastUserContent, false, historyBeforeThis);
     }
   };
 

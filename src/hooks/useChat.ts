@@ -420,32 +420,18 @@ export const useChat = () => {
           if (done) break;
 
           const chunk = decoder.decode(value, { stream: true });
-          const lines = chunk.split("\n");
+          fullContent += chunk;
 
-          for (const line of lines) {
-            if (line.startsWith("data: ")) {
-              const data = line.slice(6);
-              if (data === "[DONE]") break;
-              try {
-                const parsed = JSON.parse(data);
-                const contentChunk = parsed.choices[0].delta.content || "";
-                fullContent += contentChunk;
-                
-                const detectedButtons: { label: string; url: string; primary?: boolean }[] = [];
-                Object.keys(BUTTON_MAP).forEach((key) => {
-                  if (fullContent.includes(key)) {
-                    if (!detectedButtons.find((b) => b.url === BUTTON_MAP[key].url)) {
-                      detectedButtons.push(BUTTON_MAP[key]);
-                    }
-                  }
-                });
-
-                updateAiMessage(fullContent, false, detectedButtons.length > 0 ? detectedButtons : undefined);
-              } catch (e) {
-                console.error("Error parsing SSE chunk", e);
+          const detectedButtons: { label: string; url: string; primary?: boolean }[] = [];
+          Object.keys(BUTTON_MAP).forEach((key) => {
+            if (fullContent.includes(key)) {
+              if (!detectedButtons.find((b) => b.url === BUTTON_MAP[key].url)) {
+                detectedButtons.push(BUTTON_MAP[key]);
               }
             }
-          }
+          });
+
+          updateAiMessage(fullContent, false, detectedButtons.length > 0 ? detectedButtons : undefined);
         }
       }
       updateAiMessage(fullContent, true);

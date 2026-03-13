@@ -186,6 +186,8 @@ interface ChatMessageProps {
   onRetry?: () => void;
   onRegenerate?: () => void;
   buttons?: ChatButtonType[];
+  isAuthenticated: boolean;
+  onRequiredLogin: () => void;
 }
 
 /**
@@ -219,6 +221,8 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
   onRetry,
   onRegenerate,
   buttons,
+  isAuthenticated,
+  onRequiredLogin,
 }) => {
   const isUser = role === "user";
   const isLoading = !isUser && content === "";
@@ -241,6 +245,15 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
     } catch (err) {
       console.error("Failed to copy", err);
     }
+  };
+
+  const handleAuthAction = (action: () => void) => {
+    if (!isAuthenticated) {
+      window.alert("로그인이 필요한 서비스입니다. 로그인 페이지로 이동합니다.");
+      onRequiredLogin();
+      return;
+    }
+    action();
   };
 
   const renderContent = () => {
@@ -361,7 +374,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
                 </ActionButton>
 
                 {isLast && onRegenerate && (
-                  <ActionButton onClick={onRegenerate} title="다시 생성">
+                  <ActionButton onClick={() => handleAuthAction(onRegenerate)} title="다시 생성">
                     <RefreshCw size={12} /> 다시 생성
                   </ActionButton>
                 )}
@@ -369,7 +382,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
             )}
 
             {isError && onRetry && (
-              <ActionButton onClick={onRetry} style={{ color: "#ff4d4f" }}>
+              <ActionButton onClick={() => handleAuthAction(onRetry)} style={{ color: "#ff4d4f" }}>
                 <RefreshCw size={12} /> 재시도
               </ActionButton>
             )}

@@ -164,6 +164,8 @@ interface ChatInputProps {
   onStopGeneration: () => void;
   selectedChatbotType: ChatbotType;
   onChatbotTypeChange: (type: ChatbotType) => void;
+  isAuthenticated: boolean;
+  onRequiredLogin: () => void;
 }
 
 export const ChatInput: React.FC<ChatInputProps> = ({
@@ -172,6 +174,8 @@ export const ChatInput: React.FC<ChatInputProps> = ({
   onStopGeneration,
   // selectedChatbotType,
   // onChatbotTypeChange,
+  isAuthenticated,
+  onRequiredLogin,
 }) => {
   const [input, setInput] = useState("");
   const [isFocused, setIsFocused] = useState(false);
@@ -194,6 +198,10 @@ export const ChatInput: React.FC<ChatInputProps> = ({
 
   const handleSubmit = (e?: React.FormEvent) => {
     e?.preventDefault();
+    if (!isAuthenticated) {
+      onRequiredLogin();
+      return;
+    }
     if (isLoading) {
       onStopGeneration();
       return;
@@ -212,6 +220,12 @@ export const ChatInput: React.FC<ChatInputProps> = ({
     }
   };
 
+  const placeholder = !isAuthenticated
+    ? "여기를 눌러 로그인하세요"
+    : isLoading
+      ? "답변을 생성하고 있습니다..."
+      : "질문을 입력하세요";
+
   return (
     <InputWrapper>
       {/* 커스텀 속성 전역 선언 */}
@@ -225,48 +239,46 @@ export const ChatInput: React.FC<ChatInputProps> = ({
         `}
       </style>
 
-      {/* AI 타입 선택 드롭다운 숨김 처리 */}
-      {/* <SelectWrapper>
-        <StyledSelect
-          value={selectedChatbotType}
-          onChange={(e) => onChatbotTypeChange(e.target.value as ChatbotType)}
-          disabled={true}
-        >
-          {Object.entries(CHATBOT_LABELS).map(([value, label]) => (
-            <option key={value} value={value}>
-              {label}
-            </option>
-          ))}
-        </StyledSelect>
-        <SelectIcon>
-          <ChevronDown size={14} />
-        </SelectIcon>
-      </SelectWrapper>
-      */}
       <GlowContainer $isFocused={isFocused} $isLoading={isLoading}>
-        <InputForm onSubmit={handleSubmit}>
-          <TextInput
-            ref={textareaRef}
-            rows={1}
-            value={input}
-            onChange={(e) => {
-              setInput(e.target.value);
-              handleInputResize();
-            }}
-            onFocus={() => setIsFocused(true)}
-            onBlur={() => setIsFocused(false)}
-            onKeyDown={handleKeyDown}
-            placeholder={
-              isLoading ? "답변을 생성하고 있습니다..." : "질문을 입력하세요"
-            }
-            disabled={isLoading}
-          />
+        <InputForm 
+          onSubmit={handleSubmit} 
+          onClick={!isAuthenticated ? onRequiredLogin : undefined}
+          style={{ cursor: !isAuthenticated ? "pointer" : "default" }}
+        >
+          {!isAuthenticated ? (
+            <div 
+              style={{ 
+                flex: 1, 
+                padding: "10px 0", 
+                fontSize: "15px", 
+                color: "#aaaaaa",
+                userSelect: "none"
+              }}
+            >
+              {placeholder}
+            </div>
+          ) : (
+            <TextInput
+              ref={textareaRef}
+              rows={1}
+              value={input}
+              onChange={(e) => {
+                setInput(e.target.value);
+                handleInputResize();
+              }}
+              onFocus={() => setIsFocused(true)}
+              onBlur={() => setIsFocused(false)}
+              onKeyDown={handleKeyDown}
+              placeholder={placeholder}
+              disabled={isLoading}
+            />
+          )}
           <ActionButton
             type="submit"
-            $isActive={input.trim().length > 0}
+            $isActive={isAuthenticated && (input.trim().length > 0 || isLoading)}
             $isStop={isLoading}
-            disabled={!isLoading && !input.trim()}
-            title={isLoading ? "응답 중지" : "전송"}
+            disabled={!isLoading && (!input.trim() || !isAuthenticated)}
+            title={!isAuthenticated ? "로그인" : isLoading ? "응답 중지" : "전송"}
           >
             {isLoading ? (
               <Square size={16} fill="currentColor" />

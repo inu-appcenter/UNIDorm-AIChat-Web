@@ -61,6 +61,8 @@ export default function App() {
     currentRoomId,
     setCurrentRoomId,
     isLoading,
+    isAuthenticated,
+    handleRequiredLogin,
     createNewRoom,
     deleteRoom,
     updateRoomTitle,
@@ -139,7 +141,11 @@ export default function App() {
 
           <ChatArea ref={chatAreaRef}>
             {currentRoom.messages.length === 0 ? (
-              <GuideScreen onSelectGuide={(msg) => sendMessage(msg)} />
+              <GuideScreen 
+                onSelectGuide={(msg) => sendMessage(msg)} 
+                isAuthenticated={isAuthenticated}
+                onRequiredLogin={handleRequiredLogin}
+              />
             ) : (
               <>
                 {currentRoom.messages.map((msg, index) => (
@@ -165,6 +171,8 @@ export default function App() {
                         )
                       }
                       onRegenerate={regenerateResponse}
+                      isAuthenticated={isAuthenticated}
+                      onRequiredLogin={handleRequiredLogin}
                     />
                   </React.Fragment>
                 ))}
@@ -183,6 +191,8 @@ export default function App() {
             onStopGeneration={stopGeneration}
             selectedChatbotType={selectedChatbotType}
             onChatbotTypeChange={setSelectedChatbotType}
+            isAuthenticated={isAuthenticated}
+            onRequiredLogin={handleRequiredLogin}
           />
         </MainArea>
       </AppContainer>

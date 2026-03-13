@@ -51,6 +51,8 @@ const GuideCard = styled.button`
 
 interface GuideScreenProps {
   onSelectGuide: (message: string) => void;
+  isAuthenticated: boolean;
+  onRequiredLogin: () => void;
 }
 
 // 전체 질문 리스트
@@ -85,7 +87,11 @@ const ALL_MESSAGES = [
   "환불 처리되는 데 얼마나 걸려?",
 ];
 
-export const GuideScreen: React.FC<GuideScreenProps> = ({ onSelectGuide }) => {
+export const GuideScreen: React.FC<GuideScreenProps> = ({ 
+  onSelectGuide, 
+  isAuthenticated, 
+  onRequiredLogin 
+}) => {
   // 랜덤 5개 질문 추출 (메모이제이션)
   const randomMessages = useMemo(() => {
     return [...ALL_MESSAGES]
@@ -93,11 +99,20 @@ export const GuideScreen: React.FC<GuideScreenProps> = ({ onSelectGuide }) => {
       .slice(0, 5); // 5개 선택
   }, []);
 
+  const handleClick = (message: string) => {
+    if (!isAuthenticated) {
+      window.alert("로그인이 필요한 서비스입니다. 로그인 페이지로 이동합니다.");
+      onRequiredLogin();
+      return;
+    }
+    onSelectGuide(message);
+  };
+
   return (
     <GuideScreenContainer>
       <GuideTitle>이렇게 질문해 보세요</GuideTitle>
       {randomMessages.map((message, index) => (
-        <GuideCard key={index} onClick={() => onSelectGuide(message)}>
+        <GuideCard key={index} onClick={() => handleClick(message)}>
           {message}
         </GuideCard>
       ))}

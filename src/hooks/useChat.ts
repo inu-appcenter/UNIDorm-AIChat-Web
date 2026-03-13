@@ -317,7 +317,7 @@ export const useChat = () => {
             "Content-Type": "application/json",
             Authorization: `Bearer ${localStorage.getItem(TOKEN_KEY)}`,
           },
-          body: JSON.stringify({ message: content }),
+          body: JSON.stringify({ question: content }),
           signal: abortControllerRef.current.signal,
         });
 
@@ -386,7 +386,7 @@ export const useChat = () => {
       const history = currentRoom.messages
         .slice(-MAX_HISTORY_LENGTH)
         .map((msg) => ({
-          role: msg.role === "ai" ? "assistant" : "user",
+          role: (msg.role === "ai" || msg.role === "assistant") ? "assistant" : "user",
           content: msg.content,
         }));
 
@@ -397,9 +397,8 @@ export const useChat = () => {
           Authorization: `Bearer ${localStorage.getItem(TOKEN_KEY)}`,
         },
         body: JSON.stringify({
-          message: content,
+          question: content,
           history,
-          type: selectedChatbotType === "classify" ? "general" : selectedChatbotType,
         }),
         signal: abortControllerRef.current.signal,
       });

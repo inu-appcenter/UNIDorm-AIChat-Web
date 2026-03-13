@@ -142,7 +142,7 @@ export const useChat = () => {
 
   // 로그인 유도 처리 함수
   const handleRequiredLogin = () => {
-    window.open("https://unidorm.inuappcenter.kr/login", "_top");
+    window.open("/login", "_top");
   };
 
   const createNewRoom = () => {

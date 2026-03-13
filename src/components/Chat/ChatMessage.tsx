@@ -249,8 +249,9 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
 
   const handleAuthAction = (action: () => void) => {
     if (!isAuthenticated) {
-      window.alert("로그인이 필요한 서비스입니다. 로그인 페이지로 이동합니다.");
-      onRequiredLogin();
+      if (window.confirm("로그인이 필요한 서비스입니다. 로그인 페이지로 이동할까요?")) {
+        onRequiredLogin();
+      }
       return;
     }
     action();

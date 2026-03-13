@@ -52,8 +52,10 @@ export const useChat = () => {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(
     !!localStorage.getItem(TOKEN_KEY),
   );
+  const [loginStatus, setLoginStatus] = useState<"idle" | "loading" | "success">("idle");
   const chatAreaRef = useRef<HTMLDivElement>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
+  const isExchangingRef = useRef<boolean>(false);
 
   const currentRoom =
     rooms.find((room) => room.id === currentRoomId) || rooms[0];
@@ -63,8 +65,10 @@ export const useChat = () => {
     const urlParams = new URLSearchParams(window.location.search);
     const accessToken = urlParams.get("token");
 
-    if (accessToken) {
+    if (accessToken && !isExchangingRef.current) {
+      isExchangingRef.current = true;
       const exchangeToken = async () => {
+        setLoginStatus("loading");
         try {
           const response = await fetch(LOGIN_URL, {
             method: "POST",
@@ -90,9 +94,12 @@ export const useChat = () => {
 
           localStorage.setItem(TOKEN_KEY, aiToken);
           setIsAuthenticated(true);
-          window.alert(
-            "로그인에 성공하였습니다. 챗불이와 대화를 시작해보세요!",
-          );
+          setLoginStatus("success");
+          
+          // 1초 후 로딩창 닫기
+          setTimeout(() => {
+            setLoginStatus("idle");
+          }, 1000);
 
           const newUrl = window.location.pathname;
           window.history.replaceState({}, "", newUrl);
@@ -100,8 +107,13 @@ export const useChat = () => {
         } catch (error) {
           console.error("Token exchange failed", error);
           setIsAuthenticated(false);
+          setLoginStatus("idle");
           // 토큰 교환 실패 시 저장된 이전 토큰 삭제
           localStorage.removeItem(TOKEN_KEY);
+
+          if (window.confirm("유니돔 로그인이 필요합니다. 로그인 페이지로 이동할까요?")) {
+            handleRequiredLogin();
+          }
         }
       };
 
@@ -471,6 +483,7 @@ export const useChat = () => {
     setCurrentRoomId,
     isLoading,
     isAuthenticated,
+    loginStatus,
     handleRequiredLogin,
     createNewRoom,
     deleteRoom,

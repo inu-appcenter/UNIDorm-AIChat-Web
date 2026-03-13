@@ -9,6 +9,7 @@ import {
   MainArea,
   AmbientOrb,
 } from "./components/Layout/AppLayout";
+import LoadingSpinner from "./components/Common/LoadingSpinner";
 import { ChatHeader } from "./components/Chat/ChatHeader";
 import { ChatArea } from "./components/Chat/ChatArea";
 import { ChatMessage } from "./components/Chat/ChatMessage";
@@ -62,6 +63,7 @@ export default function App() {
     setCurrentRoomId,
     isLoading,
     isAuthenticated,
+    loginStatus,
     handleRequiredLogin,
     createNewRoom,
     deleteRoom,
@@ -115,6 +117,13 @@ export default function App() {
     <>
       <GlobalStyle />
       <AppContainer>
+        {loginStatus !== "idle" && (
+          <LoadingSpinner 
+            overlay 
+            status={loginStatus as "loading" | "success"}
+            message={loginStatus === "loading" ? "로그인 중입니다..." : "로그인 성공!"} 
+          />
+        )}
         <Overlay
           $isOpen={isSidebarOpen}
           onClick={() => setIsSidebarOpen(false)}

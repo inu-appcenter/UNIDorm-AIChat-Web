@@ -1,6 +1,11 @@
 import { useState, useRef, useEffect } from "react";
 import type { ChatRoom, ChatMessage } from "../types/chat";
-import { CLASSIFY_URL, CHAT_URL, LOGIN_URL, type ChatbotType } from "../constants/api";
+import {
+  CLASSIFY_URL,
+  CHAT_URL,
+  LOGIN_URL,
+  type ChatbotType,
+} from "../constants/api";
 
 const STORAGE_KEY = "unidorm_chat_rooms";
 const TOKEN_KEY = "unidorm_ai_access_token";
@@ -44,7 +49,9 @@ export const useChat = () => {
 
   const [currentRoomId, setCurrentRoomId] = useState<string>(rooms[0].id);
   const [isLoading, setIsLoading] = useState(false);
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(!!localStorage.getItem(TOKEN_KEY));
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(
+    !!localStorage.getItem(TOKEN_KEY),
+  );
   const chatAreaRef = useRef<HTMLDivElement>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
 
@@ -54,7 +61,7 @@ export const useChat = () => {
   // 1. URL에서 토큰 추출 및 정제 로직
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
-    const accessToken = urlParams.get("accessToken");
+    const accessToken = urlParams.get("token");
 
     if (accessToken) {
       const exchangeToken = async () => {
@@ -73,7 +80,9 @@ export const useChat = () => {
 
           const data = await response.json();
           // 제시해주신 { "status": "success", "accessToken": "..." } 형식에서 토큰 추출
-          const aiToken = data.accessToken || (typeof data === "string" ? data : (data.token || data.access_token));
+          const aiToken =
+            data.accessToken ||
+            (typeof data === "string" ? data : data.token || data.access_token);
 
           if (!aiToken) {
             throw new Error("No token found in response");
@@ -81,7 +90,9 @@ export const useChat = () => {
 
           localStorage.setItem(TOKEN_KEY, aiToken);
           setIsAuthenticated(true);
-          window.alert("로그인에 성공하였습니다. 챗불이와 대화를 시작해보세요!");
+          window.alert(
+            "로그인에 성공하였습니다. 챗불이와 대화를 시작해보세요!",
+          );
 
           const newUrl = window.location.pathname;
           window.history.replaceState({}, "", newUrl);
@@ -94,18 +105,17 @@ export const useChat = () => {
         }
       };
 
-          exchangeToken();
-          } else {
-          // 페이지 로드 시 토큰이 아예 없는 경우 처리
-          const savedToken = localStorage.getItem(TOKEN_KEY);
-          if (savedToken) {
-          setIsAuthenticated(true);
-          } else {
-          setIsAuthenticated(false);
-          }
-          }
-          }, []);
-
+      exchangeToken();
+    } else {
+      // 페이지 로드 시 토큰이 아예 없는 경우 처리
+      const savedToken = localStorage.getItem(TOKEN_KEY);
+      if (savedToken) {
+        setIsAuthenticated(true);
+      } else {
+        setIsAuthenticated(false);
+      }
+    }
+  }, []);
 
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(rooms));
@@ -294,9 +304,9 @@ export const useChat = () => {
 
       const headers: HeadersInit = {
         "Content-Type": "application/json",
-        "Authorizaion": `Bearer ${savedToken}`, // 요청하신 오타 형태
-        "Authorization": `Bearer ${savedToken}`, // 표준 형태
-        "X-Access-Token": savedToken
+        Authorizaion: `Bearer ${savedToken}`, // 요청하신 오타 형태
+        Authorization: `Bearer ${savedToken}`, // 표준 형태
+        "X-Access-Token": savedToken,
       };
 
       if (selectedChatbotType === "classify") {

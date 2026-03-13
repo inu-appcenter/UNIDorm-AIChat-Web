@@ -64,6 +64,7 @@ export const useChat = () => {
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
     const accessToken = urlParams.get("token");
+    const mode = urlParams.get("mode") || "prod";
 
     if (accessToken && !isExchangingRef.current) {
       isExchangingRef.current = true;
@@ -75,7 +76,7 @@ export const useChat = () => {
             headers: {
               "Content-Type": "application/json",
             },
-            body: JSON.stringify({ accessToken }),
+            body: JSON.stringify({ accessToken, mode }),
           });
 
           if (!response.ok) {

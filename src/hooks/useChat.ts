@@ -11,23 +11,59 @@ const STORAGE_KEY = "unidorm_chat_rooms";
 const TOKEN_KEY = "unidorm_ai_access_token";
 const MAX_HISTORY_LENGTH = 10;
 
-const BUTTON_MAP: Record<string, { label: string; url: string }> = {
-  UNIDORM: { label: "유니돔", url: "https://unidorm.inuappcenter.kr" },
-  PORTAL_MAIN: { label: "인천대 포털", url: "https://portal.inu.ac.kr" },
-  EDUFMS: {
-    label: "에듀맥(EDUFMS)",
-    url: "https://edumac.kr/mon/index.do?schlType=Univ",
-  },
-  DORM_MAIN: { label: "기숙사 홈페이지", url: "https://dorm.inu.ac.kr" },
-  DORM_RESERVE: {
-    label: "세미나실 예약 페이지",
-    url: "https://dorm.inu.ac.kr/dorm/13698/subview.do",
-  },
-};
-
 export const useChat = () => {
+  // 0. 프론트엔드 베이스 URL 결정 로직 (mode 파라미터 활용)
+  const urlParams = new URLSearchParams(window.location.search);
+  const mode = urlParams.get("mode") || "prod";
+
+  const getFrontendBaseUrl = () => {
+    // 로컬 환경 체크
+    if (
+      window.location.hostname === "localhost" ||
+      window.location.hostname === "127.0.0.1"
+    ) {
+      return window.location.origin;
+    }
+    // mode 파라미터에 따른 분기
+    if (mode === "dev") return "https://unidorm-test.pages.dev";
+    return "https://unidorm.inuappcenter.kr";
+  };
+
+  const WEB_BASE_URL = getFrontendBaseUrl();
+
+  const BUTTON_MAP: Record<string, { label: string; url: string }> = {
+    UNIDORM: { label: "유니돔", url: WEB_BASE_URL },
+    PORTAL_MAIN: { label: "인천대 포털", url: "https://portal.inu.ac.kr" },
+    EDUFMS: {
+      label: "에듀맥(EDUFMS)",
+      url: "https://edumac.kr/mon/index.do?schlType=Univ",
+    },
+    DORM_MAIN: { label: "기숙사 홈페이지", url: "https://dorm.inu.ac.kr" },
+    DORM_RESERVE: {
+      label: "세미나실 예약 페이지",
+      url: "https://dorm.inu.ac.kr/dorm/13698/subview.do",
+    },
+  };
+
   const [selectedChatbotType, setSelectedChatbotType] =
     useState<ChatbotType>("special");
+  const hasAlertedRef = useRef(false);
+
+  // 개발 환경 파라미터 경고 (StrictMode 중복 방지)
+  useEffect(() => {
+    const isLocal =
+      window.location.hostname === "localhost" ||
+      window.location.hostname === "127.0.0.1";
+    if (
+      isLocal &&
+      (!urlParams.get("token") || !urlParams.get("mode")) &&
+      !hasAlertedRef.current
+    ) {
+      alert("url파라미터로 token과 mode를 전달해주세요.");
+      hasAlertedRef.current = true;
+    }
+  }, []);
+
   const [rooms, setRooms] = useState<ChatRoom[]>(() => {
     const saved = localStorage.getItem(STORAGE_KEY);
     if (saved) {
@@ -62,9 +98,7 @@ export const useChat = () => {
 
   // 1. URL에서 토큰 추출 및 정제 로직
   useEffect(() => {
-    const urlParams = new URLSearchParams(window.location.search);
     const accessToken = urlParams.get("token");
-    const mode = urlParams.get("mode") || "prod";
 
     if (accessToken && !isExchangingRef.current) {
       isExchangingRef.current = true;
@@ -84,7 +118,6 @@ export const useChat = () => {
           }
 
           const data = await response.json();
-          // 제시해주신 { "status": "success", "accessToken": "..." } 형식에서 토큰 추출
           const aiToken =
             data.accessToken ||
             (typeof data === "string" ? data : data.token || data.access_token);
@@ -97,7 +130,6 @@ export const useChat = () => {
           setIsAuthenticated(true);
           setLoginStatus("success");
           
-          // 1초 후 로딩창 닫기
           setTimeout(() => {
             setLoginStatus("idle");
           }, 1000);
@@ -109,7 +141,6 @@ export const useChat = () => {
           console.error("Token exchange failed", error);
           setIsAuthenticated(false);
           setLoginStatus("idle");
-          // 토큰 교환 실패 시 저장된 이전 토큰 삭제
           localStorage.removeItem(TOKEN_KEY);
 
           if (window.confirm("유니돔 로그인이 필요합니다. 로그인 페이지로 이동할까요?")) {
@@ -120,7 +151,6 @@ export const useChat = () => {
 
       exchangeToken();
     } else {
-      // 페이지 로드 시 토큰이 아예 없는 경우 처리
       const savedToken = localStorage.getItem(TOKEN_KEY);
       if (savedToken) {
         setIsAuthenticated(true);
@@ -142,7 +172,7 @@ export const useChat = () => {
 
   // 로그인 유도 처리 함수
   const handleRequiredLogin = () => {
-    window.open("/login", "_top");
+    window.open(`${WEB_BASE_URL}/login`, "_top");
   };
 
   const createNewRoom = () => {
@@ -163,38 +193,69 @@ export const useChat = () => {
   };
 
   const deleteRoom = (id: string) => {
-    if (rooms.length === 1) {
-      clearHistory();
-      return;
-    }
-    const filteredRooms = rooms.filter((r) => r.id !== id);
-    setRooms(filteredRooms);
-    if (currentRoomId === id) {
-      setCurrentRoomId(filteredRooms[0].id);
-    }
-  };
-
-  const updateRoomTitle = (id: string, newTitle: string) => {
-    if (!newTitle.trim()) return;
-    setRooms((prevRooms) =>
-      prevRooms.map((room) =>
-        room.id === id ? { ...room, title: newTitle.trim() } : room,
-      ),
-    );
-  };
-
-  const clearHistory = () => {
-    if (window.confirm("모든 대화 내역을 삭제할까요?")) {
-      const initialRoom: ChatRoom = {
+    const updatedRooms = rooms.filter((room) => room.id !== id);
+    if (updatedRooms.length === 0) {
+      const newRoom: ChatRoom = {
         id: Date.now().toString(),
         title: "새로운 대화",
         messages: [],
         chatbotType: "special",
       };
-      setRooms([initialRoom]);
-      setCurrentRoomId(initialRoom.id);
-      localStorage.removeItem(STORAGE_KEY);
+      setRooms([newRoom]);
+      setCurrentRoomId(newRoom.id);
+    } else {
+      setRooms(updatedRooms);
+      if (currentRoomId === id) {
+        setCurrentRoomId(updatedRooms[0].id);
+      }
     }
+  };
+
+  const updateRoomTitle = (id: string, title: string) => {
+    setRooms(
+      rooms.map((room) => (room.id === id ? { ...room, title } : room)),
+    );
+  };
+
+  const clearHistory = () => {
+    setRooms(
+      rooms.map((room) =>
+        room.id === currentRoomId ? { ...room, messages: [] } : room,
+      ),
+    );
+  };
+
+  const updateAiMessage = (
+    content: string,
+    isComplete: boolean = false,
+    buttons?: { label: string; url: string; primary?: boolean }[],
+  ) => {
+    setRooms((prev) =>
+      prev.map((room) => {
+        if (room.id === currentRoomId) {
+          const messages = [...room.messages];
+          if (messages.length > 0 && messages[messages.length - 1].role === "ai") {
+            messages[messages.length - 1] = {
+              ...messages[messages.length - 1],
+              content,
+              isComplete,
+              buttons,
+            };
+          } else {
+            messages.push({
+              id: Date.now().toString(),
+              role: "ai",
+              content,
+              timestamp: Date.now(),
+              isComplete,
+              buttons,
+            });
+          }
+          return { ...room, messages };
+        }
+        return room;
+      }),
+    );
   };
 
   const stopGeneration = () => {
@@ -202,140 +263,65 @@ export const useChat = () => {
       abortControllerRef.current.abort();
       abortControllerRef.current = null;
       setIsLoading(false);
+      updateAiMessage(currentRoom.messages[currentRoom.messages.length - 1].content, true);
+    }
+  };
 
-      setRooms((prevRooms) =>
-        prevRooms.map((room) => {
+  const sendMessage = async (content: string, isRetry: boolean = false) => {
+    if (!content.trim()) return;
+
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    abortControllerRef.current = new AbortController();
+
+    if (isRetry) {
+      // 리트라이 시 마지막 AI 메시지 삭제
+      setRooms((prev) =>
+        prev.map((room) => {
           if (room.id === currentRoomId) {
-            const newMessages = [...room.messages];
-            const lastMsg = newMessages[newMessages.length - 1];
-            if (lastMsg && lastMsg.role === "ai" && lastMsg.content === "") {
-              newMessages[newMessages.length - 1] = {
-                ...lastMsg,
-                content: "응답이 중단되었습니다.",
-              };
-              return { ...room, messages: newMessages };
+            const messages = [...room.messages];
+            if (messages.length > 0 && messages[messages.length - 1].role === "ai") {
+              messages.pop();
             }
+            return { ...room, messages };
           }
           return room;
         }),
       );
-    }
-  };
-
-  const updateAiMessage = (
-    content: string,
-    isError: boolean = false,
-    customButtons?: any[],
-  ) => {
-    const buttonRegex = /\[(?:BUTTON|버튼):\s*(\w+)\]/g;
-    const detectedButtons: any[] = [...(customButtons || [])];
-    let cleanedContent = content;
-    let match;
-
-    while ((match = buttonRegex.exec(content)) !== null) {
-      const key = match[1];
-      if (BUTTON_MAP[key]) {
-        if (!detectedButtons.find((b) => b.url === BUTTON_MAP[key].url)) {
-          detectedButtons.push({ ...BUTTON_MAP[key], primary: true });
-        }
-      }
-    }
-
-    cleanedContent = content.replace(buttonRegex, "").trim();
-
-    setRooms((prevRooms) =>
-      prevRooms.map((room) => {
-        if (room.id === currentRoomId) {
-          const newMessages = [...room.messages];
-          const lastMsgIdx = newMessages.length - 1;
-          newMessages[lastMsgIdx] = {
-            ...newMessages[lastMsgIdx],
-            content: cleanedContent,
-            isError,
-            buttons: detectedButtons.length > 0 ? detectedButtons : undefined,
-            timestamp: Date.now(),
-          };
-          return { ...room, messages: newMessages };
-        }
-        return room;
-      }),
-    );
-  };
-
-  const sendMessage = async (text: string, isRetry: boolean = false) => {
-    if (!text.trim() || isLoading) return;
-
-    // 2. 메시지 전송 시점에 토큰 체크
-    const savedToken = localStorage.getItem(TOKEN_KEY);
-    if (!savedToken) {
-      handleRequiredLogin();
-      return;
-    }
-
-    const userMsg: ChatMessage = {
-      role: "user",
-      content: text,
-      timestamp: Date.now(),
-    };
-
-    setRooms((prevRooms) =>
-      prevRooms.map((room) => {
-        if (room.id === currentRoomId) {
-          const isFirstMessage = room.messages.length === 0;
-          const newMessages: ChatMessage[] = isRetry
-            ? [...room.messages]
-            : [
-                ...room.messages,
-                userMsg,
-                { role: "ai", content: "", timestamp: Date.now() },
-              ];
-
-          if (isRetry) {
-            newMessages[newMessages.length - 1] = {
-              role: "ai",
-              content: "",
-              timestamp: Date.now(),
-            };
-          }
-
-          return {
-            ...room,
-            title: isFirstMessage && !isRetry ? text.slice(0, 20) : room.title,
-            messages: newMessages,
-          };
-        }
-        return room;
-      }),
-    );
-
-    setIsLoading(true);
-    abortControllerRef.current = new AbortController();
-
-    try {
-      let activeChatbotType = selectedChatbotType;
-      let prefixContent = "";
-
-      const headers: HeadersInit = {
-        "Content-Type": "application/json",
-        Authorizaion: `Bearer ${savedToken}`, // 요청하신 오타 형태
-        Authorization: `Bearer ${savedToken}`, // 표준 형태
-        "X-Access-Token": savedToken,
+    } else {
+      const userMessage: ChatMessage = {
+        id: Date.now().toString(),
+        role: "user",
+        content,
+        timestamp: Date.now(),
       };
 
-      if (selectedChatbotType === "classify") {
-        updateAiMessage("질문을 분류하는 중입니다...");
+      setRooms((prev) =>
+        prev.map((room) =>
+          room.id === currentRoomId
+            ? { ...room, messages: [...room.messages, userMessage] }
+            : room,
+        ),
+      );
+    }
 
+    setIsLoading(true);
+    updateAiMessage("", false);
+
+    try {
+      if (selectedChatbotType === "classify") {
         const classifyResponse = await fetch(CLASSIFY_URL, {
           method: "POST",
-          headers: headers,
-          body: JSON.stringify({ text: text }),
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${localStorage.getItem(TOKEN_KEY)}`,
+          },
+          body: JSON.stringify({ message: content }),
           signal: abortControllerRef.current.signal,
         });
 
-        // 3. 401 Unauthorized 처리 (토큰 만료 등)
         if (classifyResponse.status === 401) {
-          localStorage.removeItem(TOKEN_KEY);
-          setIsAuthenticated(false);
           handleRequiredLogin();
           return;
         }
@@ -349,11 +335,11 @@ export const useChat = () => {
         if (category === "유니돔민원") {
           updateAiMessage(
             rawResponse + "유니돔 민원 페이지에서 접수하실 수 있습니다.",
-            false,
+            true,
             [
               {
                 label: "유니돔 민원 접수",
-                url: "https://unidorm.inuappcenter.kr/complain",
+                url: `${WEB_BASE_URL}/complain`,
                 primary: true,
               },
             ],
@@ -363,7 +349,7 @@ export const useChat = () => {
         } else if (category === "시설고장") {
           updateAiMessage(
             rawResponse + "시설 고장 신고는 포털 사이트를 이용해주세요.",
-            false,
+            true,
             [
               {
                 label: "인천대 포털 바로가기",
@@ -374,106 +360,126 @@ export const useChat = () => {
           );
           setIsLoading(false);
           return;
-        } else if (category === "기타민원") {
+        } else if (category === "기숙사운영") {
           updateAiMessage(
-            rawResponse +
-              "기타 민원 접수는 소속 기숙사에 따라 아래 시스템을 이용해주세요.",
-            false,
+            rawResponse + "기숙사 운영 관련 문의는 기숙사 홈페이지를 참고하시거나 에듀맥을 확인해주세요.",
+            true,
             [
               {
-                label: "포털 사이트 (1기숙사)",
-                url: "https://portal.inu.ac.kr",
+                label: "기숙사 홈페이지",
+                url: "https://dorm.inu.ac.kr",
                 primary: true,
               },
               {
-                label: "EDUFMS (2,3기숙사)",
+                label: "에듀맥 바로가기",
                 url: "https://edufms.inu.ac.kr",
-                primary: true,
               },
             ],
           );
           setIsLoading(false);
           return;
-        } else if (category === "단순문의") {
-          activeChatbotType = "special";
-          prefixContent =
-            rawResponse + `✅ ${category}으로 판정되었습니다.\n\n---\n\n`;
-          updateAiMessage(prefixContent + "챗봇 답변을 생성 중입니다...");
         } else {
-          updateAiMessage(
-            rawResponse +
-              (classifyResult.final_guidance ||
-                "해당 문의는 관련 부서로 문의해주세요."),
-          );
-          setIsLoading(false);
-          return;
+          updateAiMessage(rawResponse + "일반 질문으로 판단되어 일반 챗봇으로 연결합니다...", false);
         }
       }
 
-      const targetRoom = rooms.find((r) => r.id === currentRoomId);
-      const messagesToSend = targetRoom ? targetRoom.messages : [];
-      const historyPayload = isRetry
-        ? messagesToSend.slice(0, -1)
-        : messagesToSend;
-
-      const slicedHistory = historyPayload.slice(-MAX_HISTORY_LENGTH);
+      const history = currentRoom.messages
+        .slice(-MAX_HISTORY_LENGTH)
+        .map((msg) => ({
+          role: msg.role === "ai" ? "assistant" : "user",
+          content: msg.content,
+        }));
 
       const response = await fetch(CHAT_URL, {
         method: "POST",
-        headers: headers,
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem(TOKEN_KEY)}`,
+        },
         body: JSON.stringify({
-          question: text,
-          history: slicedHistory,
-          type: activeChatbotType,
+          message: content,
+          history,
+          type: selectedChatbotType === "classify" ? "general" : selectedChatbotType,
         }),
         signal: abortControllerRef.current.signal,
       });
 
-      // 채팅 서버 응답에서도 401 처리
       if (response.status === 401) {
-        localStorage.removeItem(TOKEN_KEY);
-        setIsAuthenticated(false);
         handleRequiredLogin();
         return;
       }
 
-      if (!response.body) throw new Error("ReadableStream not supported");
+      if (!response.ok) throw new Error("챗봇 서버 응답 실패");
 
-      const reader = response.body.getReader();
-      const decoder = new TextDecoder("utf-8");
+      const reader = response.body?.getReader();
+      const decoder = new TextDecoder();
+      let fullContent = "";
 
-      let aiMessageContent = prefixContent;
+      if (reader) {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
 
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
+          const chunk = decoder.decode(value, { stream: true });
+          const lines = chunk.split("\n");
 
-        aiMessageContent += decoder.decode(value, { stream: true });
-        updateAiMessage(aiMessageContent);
+          for (const line of lines) {
+            if (line.startsWith("data: ")) {
+              const data = line.slice(6);
+              if (data === "[DONE]") break;
+              try {
+                const parsed = JSON.parse(data);
+                const contentChunk = parsed.choices[0].delta.content || "";
+                fullContent += contentChunk;
+                
+                const detectedButtons: { label: string; url: string; primary?: boolean }[] = [];
+                Object.keys(BUTTON_MAP).forEach((key) => {
+                  if (fullContent.includes(key)) {
+                    if (!detectedButtons.find((b) => b.url === BUTTON_MAP[key].url)) {
+                      detectedButtons.push(BUTTON_MAP[key]);
+                    }
+                  }
+                });
+
+                updateAiMessage(fullContent, false, detectedButtons.length > 0 ? detectedButtons : undefined);
+              } catch (e) {
+                console.error("Error parsing SSE chunk", e);
+              }
+            }
+          }
+        }
       }
+      updateAiMessage(fullContent, true);
     } catch (error: any) {
-      if (error.name === "AbortError") {
-        console.log("Generation stopped by user.");
-        return;
-      }
-
-      console.error("API Error:", error);
-      updateAiMessage("서버와 연결할 수 없습니다. 다시 시도해주세요.", true);
+      if (error.name === "AbortError") return;
+      console.error("Chat error:", error);
+      updateAiMessage("죄송합니다. 오류가 발생했습니다.", true);
     } finally {
       setIsLoading(false);
       abortControllerRef.current = null;
     }
   };
 
-  const regenerateResponse = () => {
-    if (isLoading) return;
-
-    const lastUserMsg = [...currentRoom.messages]
+  const regenerateResponse = async () => {
+    const lastUserMessage = [...currentRoom.messages]
       .reverse()
-      .find((m) => m.role === "user");
+      .find((msg) => msg.role === "user");
 
-    if (lastUserMsg) {
-      sendMessage(lastUserMsg.content, true);
+    if (lastUserMessage) {
+      // 마지막 AI 응답 삭제
+      setRooms((prev) =>
+        prev.map((room) => {
+          if (room.id === currentRoomId) {
+            const messages = [...room.messages];
+            if (messages[messages.length - 1].role === "ai") {
+              messages.pop();
+            }
+            return { ...room, messages };
+          }
+          return room;
+        }),
+      );
+      sendMessage(lastUserMessage.content);
     }
   };
 
@@ -485,16 +491,16 @@ export const useChat = () => {
     isLoading,
     isAuthenticated,
     loginStatus,
+    chatAreaRef,
+    selectedChatbotType,
+    setSelectedChatbotType,
     handleRequiredLogin,
     createNewRoom,
     deleteRoom,
     updateRoomTitle,
     clearHistory,
     sendMessage,
-    regenerateResponse,
     stopGeneration,
-    chatAreaRef,
-    selectedChatbotType,
-    setSelectedChatbotType,
+    regenerateResponse,
   };
 };

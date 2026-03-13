@@ -91,7 +91,7 @@ export default function App() {
     setIsSidebarOpen(!isSidebarOpen);
   };
 
-  const formatSeparatorDate = (timestamp?: number) => {
+  const formatSeparatorDate = (timestamp?: number | Date) => {
     if (!timestamp) return "";
     const date = new Date(timestamp);
     return date.toLocaleDateString("ko-KR", {

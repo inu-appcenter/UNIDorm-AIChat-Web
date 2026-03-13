@@ -5,10 +5,12 @@ export interface ChatButton {
 }
 
 export interface ChatMessage {
-  role: "user" | "ai";
+  id: string;
+  role: "user" | "ai" | "assistant";
   content: string;
-  timestamp?: number;
+  timestamp: number | Date;
   isError?: boolean;
+  isComplete?: boolean;
   buttons?: ChatButton[];
 }
 

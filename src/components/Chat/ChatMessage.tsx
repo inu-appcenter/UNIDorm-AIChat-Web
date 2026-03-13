@@ -178,9 +178,9 @@ const StyledButtonLink = styled.a<{ $primary?: boolean }>`
 `;
 
 interface ChatMessageProps {
-  role: "user" | "ai";
+  role: "user" | "ai" | "assistant";
   content: string;
-  timestamp?: number;
+  timestamp?: number | Date;
   isError?: boolean;
   isLast?: boolean;
   onRetry?: () => void;
@@ -228,7 +228,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
   const isLoading = !isUser && content === "";
   const [copied, setCopied] = useState(false);
 
-  const formatTime = (ts?: number) => {
+  const formatTime = (ts?: number | Date) => {
     if (!ts) return "";
     const date = new Date(ts);
     return date.toLocaleTimeString("ko-KR", {

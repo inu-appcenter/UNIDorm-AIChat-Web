@@ -4,7 +4,7 @@ import { CHAT_URL, LOGIN_URL, type ChatbotType } from "../constants/api";
 
 const STORAGE_KEY = "unidorm_chat_rooms";
 const TOKEN_KEY = "unidorm_ai_access_token";
-const MAX_HISTORY_LENGTH = 10;
+const MAX_HISTORY_LENGTH = 2; // 직전 대화 1턴(내 질문 + AI 응답)만 유지
 
 export const useChat = () => {
   // 0. 프론트엔드 베이스 URL 결정 로직 (mode 파라미터 활용)
@@ -217,11 +217,16 @@ export const useChat = () => {
   };
 
   const clearHistory = () => {
-    setRooms(
-      rooms.map((room) =>
-        room.id === currentRoomId ? { ...room, messages: [] } : room,
-      ),
-    );
+    if (window.confirm("모든 대화 내역을 삭제하시겠습니까?")) {
+      const newRoom: ChatRoom = {
+        id: Date.now().toString(),
+        title: "새로운 대화",
+        messages: [],
+        chatbotType: "special",
+      };
+      setRooms([newRoom]);
+      setCurrentRoomId(newRoom.id);
+    }
   };
 
   const updateAiMessage = (

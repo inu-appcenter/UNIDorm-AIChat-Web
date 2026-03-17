@@ -114,7 +114,6 @@ const ALL_MESSAGES = [
   "분리수거장 어디 있어?",
   "스터디룸 예약 어떻게 해?",
   "식당 운영시간 알려줘",
-  "최근 공지 뭐 올라왔어?",
 ];
 
 export const GuideScreen: React.FC<GuideScreenProps> = ({

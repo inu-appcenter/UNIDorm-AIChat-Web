@@ -335,13 +335,11 @@ export const useChat = () => {
         // ... (classify logic)
       }
 
-      // 히스토리 구성 (재시도일 경우 마지막 AI 메시지 제외)
+      // 히스토리 구성 (현재 질문은 제외하고 이전 대화만 포함)
       let baseMessages = [...currentRoom.messages];
-      if (
-        isRetry &&
-        baseMessages.length > 0 &&
-        baseMessages[baseMessages.length - 1].role === "ai"
-      ) {
+      
+      // 현재 메시지 목록의 마지막이 방금 추가한 'user' 메시지라면 제거 (히스토리에 중복 포함 방지)
+      if (baseMessages.length > 0 && baseMessages[baseMessages.length - 1].content === content) {
         baseMessages.pop();
       }
 
@@ -350,13 +348,15 @@ export const useChat = () => {
         : baseMessages.slice(-MAX_HISTORY_LENGTH).map((msg) => ({
             role:
               msg.role === "ai" || msg.role === "assistant"
-                ? "assistant"
+                ? "assistant" // assistant로 복구
                 : "user",
             content: msg.content,
           }));
 
+      // URL 타임스탬프 제거 및 fetch 옵션 유지
       const response = await fetch(CHAT_URL, {
         method: "POST",
+        cache: "no-cache",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${localStorage.getItem(TOKEN_KEY)}`,
@@ -513,21 +513,22 @@ export const useChat = () => {
           content: msg.content,
         }));
 
-      // 2. 상태에서 현재 질문과 그 이후 답변(들)을 삭제
+      // 2. 상태에서 질문 이후의 답변(들)만 삭제 (질문은 화면에 유지)
       setRooms((prev) =>
         prev.map((room) => {
           if (room.id === currentRoomId) {
             return {
               ...room,
-              messages: room.messages.slice(0, actualIndex),
+              messages: room.messages.slice(0, actualIndex + 1),
             };
           }
           return room;
         }),
       );
 
-      // 3. 추출한 히스토리를 명시적으로 전달하며 다시 전송
-      sendMessage(lastUserContent, false, historyBeforeThis);
+      // 3. 리트라이 모드로 다시 전송 (질문을 새로 추가하지 않음)
+      // isRetry: true는 프론트 내부 함수 인자일 뿐, 서버 API 스펙과는 무관합니다.
+      sendMessage(lastUserContent, true, historyBeforeThis);
     }
   };
 

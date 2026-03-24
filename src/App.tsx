@@ -118,10 +118,12 @@ export default function App() {
       <GlobalStyle />
       <AppContainer>
         {loginStatus !== "idle" && (
-          <LoadingSpinner 
-            overlay 
+          <LoadingSpinner
+            overlay
             status={loginStatus as "loading" | "success"}
-            message={loginStatus === "loading" ? "로그인 중입니다..." : "로그인 성공!"} 
+            message={
+              loginStatus === "loading" ? "로그인 중입니다..." : "로그인 성공!"
+            }
           />
         )}
         <Overlay
@@ -150,8 +152,8 @@ export default function App() {
 
           <ChatArea ref={chatAreaRef}>
             {currentRoom.messages.length === 0 ? (
-              <GuideScreen 
-                onSelectGuide={(msg) => sendMessage(msg)} 
+              <GuideScreen
+                onSelectGuide={(msg) => sendMessage(msg)}
                 isAuthenticated={isAuthenticated}
                 onRequiredLogin={handleRequiredLogin}
               />
@@ -162,7 +164,9 @@ export default function App() {
                     {isDifferentDay(index) && (
                       <DateSeparatorContainer>
                         <DateLine />
-                        <DateText>{formatSeparatorDate(msg.timestamp)}</DateText>
+                        <DateText>
+                          {formatSeparatorDate(msg.timestamp)}
+                        </DateText>
                         <DateLine />
                       </DateSeparatorContainer>
                     )}
@@ -189,6 +193,12 @@ export default function App() {
                   챗불이는 AI이며 실수할 수 있습니다.
                   <br />
                   중요한 정보는 직접 확인하세요.
+                  <br />첫 질문 답변은 오래 걸릴 수 있습니다.(5초 이상)
+                  <br />
+                  채팅 내용은 품질 개선을 위해 보관되며, 목적 달성 후
+                  파기됩니다.
+                  <br />
+                  민감한 개인정보를 입력하지 마세요.
                 </Disclaimer>
               </>
             )}

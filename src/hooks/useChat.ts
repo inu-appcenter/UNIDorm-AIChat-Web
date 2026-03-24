@@ -6,6 +6,38 @@ const STORAGE_KEY = "unidorm_chat_rooms";
 const TOKEN_KEY = "unidorm_ai_access_token";
 const MAX_HISTORY_LENGTH = 2; // 직전 대화 1턴(내 질문 + AI 응답)만 유지
 
+const createEmptyRoom = (): ChatRoom => ({
+  id: Date.now().toString(),
+  title: "새로운 대화",
+  messages: [],
+  chatbotType: "special",
+});
+
+const ensureGuideRoom = (rooms: ChatRoom[]) => {
+  const emptyRoomIndex = rooms.findIndex((room) => room.messages.length === 0);
+
+  if (emptyRoomIndex !== -1) {
+    if (emptyRoomIndex === 0) {
+      return {
+        rooms,
+        currentRoomId: rooms[0].id,
+      };
+    }
+
+    const emptyRoom = rooms[emptyRoomIndex];
+    return {
+      rooms: [emptyRoom, ...rooms.filter((room) => room.id !== emptyRoom.id)],
+      currentRoomId: emptyRoom.id,
+    };
+  }
+
+  const newRoom = createEmptyRoom();
+  return {
+    rooms: [newRoom, ...rooms],
+    currentRoomId: newRoom.id,
+  };
+};
+
 export const useChat = () => {
   // 0. 프론트엔드 베이스 URL 결정 로직 (mode 파라미터 활용)
   const urlParams = new URLSearchParams(window.location.search);
@@ -61,24 +93,23 @@ export const useChat = () => {
 
   const [rooms, setRooms] = useState<ChatRoom[]>(() => {
     const saved = localStorage.getItem(STORAGE_KEY);
+    let initialRooms: ChatRoom[] | null = null;
+
     if (saved) {
       try {
-        return JSON.parse(saved);
+        initialRooms = JSON.parse(saved);
       } catch (e) {
         console.error("Failed to parse rooms from localStorage", e);
       }
     }
-    return [
-      {
-        id: Date.now().toString(),
-        title: "새로운 대화",
-        messages: [],
-        chatbotType: "special",
-      },
-    ];
+
+    return ensureGuideRoom(initialRooms ?? [createEmptyRoom()]).rooms;
   });
 
-  const [currentRoomId, setCurrentRoomId] = useState<string>(rooms[0].id);
+  const [currentRoomId, setCurrentRoomId] = useState<string>(() => {
+    const guideRoom = rooms.find((room) => room.messages.length === 0) ?? rooms[0];
+    return guideRoom.id;
+  });
   const [isLoading, setIsLoading] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(
     !!localStorage.getItem(TOKEN_KEY),
@@ -183,12 +214,7 @@ export const useChat = () => {
       return;
     }
 
-    const newRoom: ChatRoom = {
-      id: Date.now().toString(),
-      title: "새로운 대화",
-      messages: [],
-      chatbotType: "special",
-    };
+    const newRoom = createEmptyRoom();
     setRooms([newRoom, ...rooms]);
     setCurrentRoomId(newRoom.id);
   };
@@ -196,12 +222,7 @@ export const useChat = () => {
   const deleteRoom = (id: string) => {
     const updatedRooms = rooms.filter((room) => room.id !== id);
     if (updatedRooms.length === 0) {
-      const newRoom: ChatRoom = {
-        id: Date.now().toString(),
-        title: "새로운 대화",
-        messages: [],
-        chatbotType: "special",
-      };
+      const newRoom = createEmptyRoom();
       setRooms([newRoom]);
       setCurrentRoomId(newRoom.id);
     } else {
@@ -218,12 +239,7 @@ export const useChat = () => {
 
   const clearHistory = () => {
     if (window.confirm("모든 대화 내역을 삭제하시겠습니까?")) {
-      const newRoom: ChatRoom = {
-        id: Date.now().toString(),
-        title: "새로운 대화",
-        messages: [],
-        chatbotType: "special",
-      };
+      const newRoom = createEmptyRoom();
       setRooms([newRoom]);
       setCurrentRoomId(newRoom.id);
     }

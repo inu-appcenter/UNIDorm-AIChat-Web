@@ -1,9 +1,11 @@
 import { useState, useRef, useEffect } from "react";
 import type { ChatRoom, ChatMessage } from "../types/chat";
 import { CHAT_URL, LOGIN_URL, type ChatbotType } from "../constants/api";
+import { injectButtonPlaceholders } from "../utils/chatButtons";
 
 const STORAGE_KEY = "unidorm_chat_rooms";
 const TOKEN_KEY = "unidorm_ai_access_token";
+const AUTO_SCROLL_THRESHOLD_PX = 80;
 const MAX_HISTORY_LENGTH = 2; // 직전 대화 1턴(내 질문 + AI 응답)만 유지
 
 const createEmptyRoom = (): ChatRoom => ({
@@ -120,6 +122,7 @@ export const useChat = () => {
   const chatAreaRef = useRef<HTMLDivElement>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
   const isExchangingRef = useRef<boolean>(false);
+  const isAutoScrollEnabledRef = useRef(true);
 
   const currentRoom =
     rooms.find((room) => room.id === currentRoomId) || rooms[0];
@@ -196,9 +199,42 @@ export const useChat = () => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(rooms));
   }, [rooms]);
 
-  useEffect(() => {
+  const isNearBottom = (element: HTMLDivElement) =>
+    element.scrollHeight - element.scrollTop - element.clientHeight <=
+    AUTO_SCROLL_THRESHOLD_PX;
+
+  const scrollToBottom = () => {
     if (chatAreaRef.current) {
       chatAreaRef.current.scrollTop = chatAreaRef.current.scrollHeight;
+    }
+  };
+
+  useEffect(() => {
+    const chatArea = chatAreaRef.current;
+    if (!chatArea) return;
+
+    const handleScroll = () => {
+      isAutoScrollEnabledRef.current = isNearBottom(chatArea);
+    };
+
+    handleScroll();
+    chatArea.addEventListener("scroll", handleScroll, { passive: true });
+
+    return () => {
+      chatArea.removeEventListener("scroll", handleScroll);
+    };
+  }, [currentRoomId]);
+
+  useEffect(() => {
+    isAutoScrollEnabledRef.current = true;
+    requestAnimationFrame(() => {
+      scrollToBottom();
+    });
+  }, [currentRoomId]);
+
+  useEffect(() => {
+    if (isAutoScrollEnabledRef.current) {
+      scrollToBottom();
     }
   }, [currentRoom.messages]);
 
@@ -299,6 +335,8 @@ export const useChat = () => {
     customHistory?: { role: string; content: string }[],
   ) => {
     if (!content.trim()) return;
+
+    isAutoScrollEnabledRef.current = true;
 
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
@@ -448,10 +486,17 @@ export const useChat = () => {
             .replace(/\[버튼:\s*[^\]]+\]/g, "") // [버튼: KEY] 제거
             .trim();
 
+          void displayContent;
+
+          const streamingMessage = injectButtonPlaceholders(
+            fullContent,
+            BUTTON_MAP,
+          );
+
           updateAiMessage(
-            displayContent,
+            streamingMessage.content,
             false,
-            detectedButtons.length > 0 ? detectedButtons : undefined,
+            streamingMessage.buttons,
           );
         }
       }
@@ -492,10 +537,14 @@ export const useChat = () => {
         .replace(/\[버튼:\s*[^\]]+\]/g, "")
         .trim();
 
+      void finalDisplayContent;
+
+      const finalMessage = injectButtonPlaceholders(fullContent, BUTTON_MAP);
+
       updateAiMessage(
-        finalDisplayContent,
+        finalMessage.content,
         true,
-        finalButtons.length > 0 ? finalButtons : undefined,
+        finalMessage.buttons,
       );
     } catch (error: any) {
       if (error.name === "AbortError") return;

@@ -2,9 +2,13 @@ import React, { useState } from "react";
 import styled, { keyframes } from "styled-components";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { Copy, Check, Bot, RefreshCw, ExternalLink } from "lucide-react";
+import { Copy, Check, RefreshCw, ExternalLink } from "lucide-react";
 import { COLORS } from "../../constants/colors";
 import type { ChatButton as ChatButtonType } from "../../types/chat";
+import {
+  splitContentByButtonPlaceholders,
+  stripButtonPlaceholders,
+} from "../../utils/chatButtons";
 
 const bounce = keyframes`
   0%, 80%, 100% { transform: translateY(0); }
@@ -20,25 +24,11 @@ const MessageRow = styled.div<{ $isUser: boolean }>`
   gap: 12px;
 `;
 
-const Avatar = styled.div<{ $isUser: boolean }>`
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  background-color: ${(props) => (props.$isUser ? "#e2eafc" : COLORS.inuBlue)};
-  color: ${(props) => (props.$isUser ? COLORS.inuBlue : "#ffffff")};
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  order: ${(props) => (props.$isUser ? 2 : 0)};
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-`;
-
 const BubbleContainer = styled.div<{ $isUser: boolean }>`
   display: flex;
   flex-direction: column;
   align-items: ${(props) => (props.$isUser ? "flex-end" : "flex-start")};
-  max-width: ${(props) => (props.$isUser ? "90%" : "calc(100% - 48px)")};
+  max-width: ${(props) => (props.$isUser ? "90%" : "calc(100% - 24px)")};
 `;
 
 const MessageBubble = styled.div<{ $isUser: boolean; $isError?: boolean }>`
@@ -147,7 +137,7 @@ const ButtonContainer = styled.div`
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
-  margin-top: 12px;
+  margin: 12px 0;
 `;
 
 const StyledButtonLink = styled.a<{ $primary?: boolean }>`
@@ -181,7 +171,7 @@ const StyledButtonLink = styled.a<{ $primary?: boolean }>`
   svg {
     transition: transform 0.2s ease;
   }
-  
+
   &:hover svg {
     transform: translateX(2px);
   }
@@ -237,6 +227,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
   const isUser = role === "user";
   const isLoading = !isUser && content === "";
   const [copied, setCopied] = useState(false);
+  const copyableContent = stripButtonPlaceholders(content);
 
   const formatTime = (ts?: number | Date) => {
     if (!ts) return "";
@@ -249,7 +240,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
 
   const handleCopy = async () => {
     try {
-      await navigator.clipboard.writeText(content);
+      await navigator.clipboard.writeText(copyableContent);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch (err) {
@@ -259,7 +250,11 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
 
   const handleAuthAction = (action: () => void) => {
     if (!isAuthenticated) {
-      if (window.confirm("로그인이 필요한 서비스입니다. 로그인 페이지로 이동할까요?")) {
+      if (
+        window.confirm(
+          "로그인이 필요한 서비스입니다. 로그인 페이지로 이동할까요?",
+        )
+      ) {
         onRequiredLogin();
       }
       return;
@@ -317,12 +312,12 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
     }
 
     return (
-      <ReactMarkdown 
+      <ReactMarkdown
         remarkPlugins={[remarkGfm]}
         components={{
           a: ({ ...props }) => (
             <a {...props} target="_blank" rel="noopener noreferrer" />
-          )
+          ),
         }}
       >
         {processed}
@@ -330,13 +325,81 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
     );
   };
 
+  const renderRichContent = () => {
+    if (isUser || !buttons || buttons.length === 0) {
+      return renderContent();
+    }
+
+    const normalizeLinks = (value: string) =>
+      value.replace(COMBINED_LINK_REGEX, (match, label, link, naked) => {
+        if (link) {
+          const { cleaned, rest } = cleanUrl(link);
+          return `[${label}](${cleaned})${rest}`;
+        }
+
+        if (naked) {
+          const { cleaned, rest } = cleanUrl(naked);
+          return `<${cleaned}>${rest}`;
+        }
+
+        return match;
+      });
+
+    const renderMarkdown = (value: string, key: React.Key) => {
+      if (!value.trim()) return null;
+
+      return (
+        <ReactMarkdown
+          key={key}
+          remarkPlugins={[remarkGfm]}
+          components={{
+            a: ({ ...props }) => (
+              <a {...props} target="_blank" rel="noopener noreferrer" />
+            ),
+          }}
+        >
+          {normalizeLinks(value)}
+        </ReactMarkdown>
+      );
+    };
+
+    const segments = splitContentByButtonPlaceholders(content);
+
+    if (segments.length === 0) {
+      return renderMarkdown(content, "content");
+    }
+
+    return segments.map((segment, index) => {
+      if (segment.type === "text") {
+        return renderMarkdown(segment.value, `text-${index}`);
+      }
+
+      const button = buttons[segment.index];
+      if (!button) return null;
+
+      return (
+        <ButtonContainer key={`button-${index}`}>
+          <StyledButtonLink
+            href={button.url}
+            target="_top"
+            rel="noopener noreferrer"
+            $primary={button.primary}
+          >
+            {button.label}
+            <ExternalLink size={14} />
+          </StyledButtonLink>
+        </ButtonContainer>
+      );
+    });
+  };
+
   return (
     <MessageRow $isUser={isUser}>
-      {!isUser && (
-        <Avatar $isUser={isUser}>
-          <Bot size={20} />
-        </Avatar>
-      )}
+      {/*{!isUser && (*/}
+      {/*  <Avatar $isUser={isUser}>*/}
+      {/*    <Bot size={20} />*/}
+      {/*  </Avatar>*/}
+      {/*)}*/}
 
       <BubbleContainer $isUser={isUser}>
         <MessageBubble $isUser={isUser} $isError={isError}>
@@ -348,23 +411,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
             </LoadingDots>
           ) : (
             <>
-              {renderContent()}
-              {buttons && buttons.length > 0 && (
-                <ButtonContainer>
-                  {buttons.map((btn, idx) => (
-                    <StyledButtonLink
-                      key={idx}
-                      href={btn.url}
-                      target="_top"
-                      rel="noopener noreferrer"
-                      $primary={btn.primary}
-                    >
-                      {btn.label}
-                      <ExternalLink size={14} />
-                    </StyledButtonLink>
-                  ))}
-                </ButtonContainer>
-              )}
+              {renderRichContent()}
             </>
           )}
         </MessageBubble>
@@ -385,7 +432,10 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
                 </ActionButton>
 
                 {isLast && onRegenerate && (
-                  <ActionButton onClick={() => handleAuthAction(onRegenerate)} title="다시 생성">
+                  <ActionButton
+                    onClick={() => handleAuthAction(onRegenerate)}
+                    title="다시 생성"
+                  >
                     <RefreshCw size={12} /> 다시 생성
                   </ActionButton>
                 )}
@@ -393,7 +443,10 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
             )}
 
             {isError && onRetry && (
-              <ActionButton onClick={() => handleAuthAction(onRetry)} style={{ color: "#ff4d4f" }}>
+              <ActionButton
+                onClick={() => handleAuthAction(onRetry)}
+                style={{ color: "#ff4d4f" }}
+              >
                 <RefreshCw size={12} /> 재시도
               </ActionButton>
             )}

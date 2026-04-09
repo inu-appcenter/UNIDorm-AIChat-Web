@@ -8,6 +8,74 @@ const TOKEN_KEY = "unidorm_ai_access_token";
 const AUTO_SCROLL_THRESHOLD_PX = 80;
 const MAX_HISTORY_LENGTH = 2; // 직전 대화 1턴(내 질문 + AI 응답)만 유지
 
+type ChatButton = {
+  label: string;
+  url: string;
+  primary?: boolean;
+};
+
+class ChatHttpError extends Error {
+  status: number;
+  detail: string;
+
+  constructor(status: number, detail: string) {
+    super(`Chat HTTP ${status}: ${detail}`);
+    this.name = "ChatHttpError";
+    this.status = status;
+    this.detail = detail;
+  }
+}
+
+const STREAM_ERROR_REGEX = /\[(bridge|engine) error\]\s*([\s\S]+)/i;
+
+const sleep = (ms: number) =>
+  new Promise<void>((resolve) => {
+    window.setTimeout(resolve, ms);
+  });
+
+const isAbortError = (error: unknown) =>
+  error instanceof Error && error.name === "AbortError";
+
+const parseErrorDetail = (raw: string) => {
+  if (!raw) return "";
+  try {
+    const parsed = JSON.parse(raw);
+    if (typeof parsed?.detail === "string") {
+      return parsed.detail;
+    }
+  } catch {
+    // ignore JSON parse error
+  }
+  return raw.trim();
+};
+
+const shouldRetryChat = (error: unknown) =>
+  error instanceof ChatHttpError
+    ? [502, 503, 504].includes(error.status)
+    : error instanceof TypeError;
+
+const getChatErrorMessage = (error: unknown) => {
+  if (error instanceof ChatHttpError) {
+    if (error.status === 503) {
+      return "서버가 응답을 준비 중입니다. 잠시 후 다시 시도해주세요.";
+    }
+    if (error.status === 502 || error.status === 504) {
+      return "첫 응답이 지연되고 있습니다. 잠시 후 다시 시도해주세요.";
+    }
+    return "채팅 요청 처리 중 오류가 발생했습니다.";
+  }
+
+  if (error instanceof TypeError) {
+    return "네트워크 연결 문제로 응답을 받지 못했습니다. 잠시 후 다시 시도해주세요.";
+  }
+
+  if (error instanceof Error && error.message) {
+    return error.message;
+  }
+
+  return "죄송합니다. 오류가 발생했습니다.";
+};
+
 const createEmptyRoom = (): ChatRoom => ({
   id: Date.now().toString(),
   title: "새로운 대화",
@@ -41,19 +109,22 @@ const ensureGuideRoom = (rooms: ChatRoom[]) => {
 };
 
 export const useChat = () => {
-  // 0. 프론트엔드 베이스 URL 결정 로직 (mode 파라미터 활용)
-  const urlParams = new URLSearchParams(window.location.search);
-  const mode = urlParams.get("mode") || "prod";
+  const searchParamsRef = useRef<URLSearchParams | null>(null);
+  if (searchParamsRef.current === null) {
+    searchParamsRef.current = new URLSearchParams(window.location.search);
+  }
+
+  const tokenParam = searchParamsRef.current.get("token");
+  const mode = searchParamsRef.current.get("mode") || "prod";
 
   const getFrontendBaseUrl = () => {
-    // 로컬 환경 체크
     if (
       window.location.hostname === "localhost" ||
       window.location.hostname === "127.0.0.1"
     ) {
       return window.location.origin;
     }
-    // mode 파라미터에 따른 분기
+
     if (mode === "dev") return "https://unidorm-test.pages.dev";
     return "https://unidorm.inuappcenter.kr";
   };
@@ -74,24 +145,28 @@ export const useChat = () => {
     },
   };
 
+  const handleRequiredLogin = () => {
+    window.open(`${WEB_BASE_URL}/login`, "_top");
+  };
+
   const [selectedChatbotType, setSelectedChatbotType] =
     useState<ChatbotType>("special");
   const hasAlertedRef = useRef(false);
 
-  // 개발 환경 파라미터 경고 (StrictMode 중복 방지)
   useEffect(() => {
     const isLocal =
       window.location.hostname === "localhost" ||
       window.location.hostname === "127.0.0.1";
+
     if (
       isLocal &&
-      (!urlParams.get("token") || !urlParams.get("mode")) &&
+      (!tokenParam || !searchParamsRef.current?.get("mode")) &&
       !hasAlertedRef.current
     ) {
-      alert("url파라미터로 token과 mode를 전달해주세요.");
+      window.alert("url파라미터로 token과 mode를 전달해주세요.");
       hasAlertedRef.current = true;
     }
-  }, []);
+  }, [tokenParam]);
 
   const [rooms, setRooms] = useState<ChatRoom[]>(() => {
     const saved = localStorage.getItem(STORAGE_KEY);
@@ -100,8 +175,8 @@ export const useChat = () => {
     if (saved) {
       try {
         initialRooms = JSON.parse(saved);
-      } catch (e) {
-        console.error("Failed to parse rooms from localStorage", e);
+      } catch (error) {
+        console.error("Failed to parse rooms from localStorage", error);
       }
     }
 
@@ -109,9 +184,11 @@ export const useChat = () => {
   });
 
   const [currentRoomId, setCurrentRoomId] = useState<string>(() => {
-    const guideRoom = rooms.find((room) => room.messages.length === 0) ?? rooms[0];
+    const guideRoom =
+      rooms.find((room) => room.messages.length === 0) ?? rooms[0];
     return guideRoom.id;
   });
+
   const [isLoading, setIsLoading] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(
     !!localStorage.getItem(TOKEN_KEY),
@@ -119,6 +196,7 @@ export const useChat = () => {
   const [loginStatus, setLoginStatus] = useState<
     "idle" | "loading" | "success"
   >("idle");
+
   const chatAreaRef = useRef<HTMLDivElement>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
   const isExchangingRef = useRef<boolean>(false);
@@ -127,21 +205,20 @@ export const useChat = () => {
   const currentRoom =
     rooms.find((room) => room.id === currentRoomId) || rooms[0];
 
-  // 1. URL에서 토큰 추출 및 정제 로직
   useEffect(() => {
-    const accessToken = urlParams.get("token");
-
-    if (accessToken && !isExchangingRef.current) {
+    if (tokenParam && !isExchangingRef.current) {
       isExchangingRef.current = true;
+
       const exchangeToken = async () => {
         setLoginStatus("loading");
+
         try {
           const response = await fetch(LOGIN_URL, {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
             },
-            body: JSON.stringify({ accessToken, mode }),
+            body: JSON.stringify({ accessToken: tokenParam, mode }),
           });
 
           if (!response.ok) {
@@ -161,7 +238,7 @@ export const useChat = () => {
           setIsAuthenticated(true);
           setLoginStatus("success");
 
-          setTimeout(() => {
+          window.setTimeout(() => {
             setLoginStatus("idle");
           }, 1000);
 
@@ -184,16 +261,12 @@ export const useChat = () => {
         }
       };
 
-      exchangeToken();
+      void exchangeToken();
     } else {
       const savedToken = localStorage.getItem(TOKEN_KEY);
-      if (savedToken) {
-        setIsAuthenticated(true);
-      } else {
-        setIsAuthenticated(false);
-      }
+      setIsAuthenticated(!!savedToken);
     }
-  }, []);
+  }, [mode, tokenParam]);
 
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(rooms));
@@ -238,11 +311,6 @@ export const useChat = () => {
     }
   }, [currentRoom.messages]);
 
-  // 로그인 유도 처리 함수
-  const handleRequiredLogin = () => {
-    window.open(`${WEB_BASE_URL}/login`, "_top");
-  };
-
   const createNewRoom = () => {
     const emptyRoom = rooms.find((room) => room.messages.length === 0);
     if (emptyRoom) {
@@ -251,12 +319,13 @@ export const useChat = () => {
     }
 
     const newRoom = createEmptyRoom();
-    setRooms([newRoom, ...rooms]);
+    setRooms((prev) => [newRoom, ...prev]);
     setCurrentRoomId(newRoom.id);
   };
 
   const deleteRoom = (id: string) => {
     const updatedRooms = rooms.filter((room) => room.id !== id);
+
     if (updatedRooms.length === 0) {
       const newRoom = createEmptyRoom();
       setRooms([newRoom]);
@@ -270,7 +339,9 @@ export const useChat = () => {
   };
 
   const updateRoomTitle = (id: string, title: string) => {
-    setRooms(rooms.map((room) => (room.id === id ? { ...room, title } : room)));
+    setRooms((prev) =>
+      prev.map((room) => (room.id === id ? { ...room, title } : room)),
+    );
   };
 
   const clearHistory = () => {
@@ -283,36 +354,36 @@ export const useChat = () => {
 
   const updateAiMessage = (
     content: string,
-    isComplete: boolean = false,
-    buttons?: { label: string; url: string; primary?: boolean }[],
+    isComplete = false,
+    buttons?: ChatButton[],
   ) => {
     setRooms((prev) =>
       prev.map((room) => {
-        if (room.id === currentRoomId) {
-          const messages = [...room.messages];
-          if (
-            messages.length > 0 &&
-            messages[messages.length - 1].role === "ai"
-          ) {
-            messages[messages.length - 1] = {
-              ...messages[messages.length - 1],
-              content,
-              isComplete,
-              buttons,
-            };
-          } else {
-            messages.push({
-              id: Date.now().toString(),
-              role: "ai",
-              content,
-              timestamp: Date.now(),
-              isComplete,
-              buttons,
-            });
-          }
-          return { ...room, messages };
+        if (room.id !== currentRoomId) return room;
+
+        const messages = [...room.messages];
+        if (
+          messages.length > 0 &&
+          messages[messages.length - 1].role === "ai"
+        ) {
+          messages[messages.length - 1] = {
+            ...messages[messages.length - 1],
+            content,
+            isComplete,
+            buttons,
+          };
+        } else {
+          messages.push({
+            id: Date.now().toString(),
+            role: "ai",
+            content,
+            timestamp: Date.now(),
+            isComplete,
+            buttons,
+          });
         }
-        return room;
+
+        return { ...room, messages };
       }),
     );
   };
@@ -322,16 +393,17 @@ export const useChat = () => {
       abortControllerRef.current.abort();
       abortControllerRef.current = null;
       setIsLoading(false);
-      updateAiMessage(
-        currentRoom.messages[currentRoom.messages.length - 1].content,
-        true,
-      );
+
+      const lastMessage = currentRoom.messages[currentRoom.messages.length - 1];
+      if (lastMessage?.role === "ai") {
+        updateAiMessage(lastMessage.content, true, lastMessage.buttons);
+      }
     }
   };
 
   const sendMessage = async (
     content: string,
-    isRetry: boolean = false,
+    isRetry = false,
     customHistory?: { role: string; content: string }[],
   ) => {
     if (!content.trim()) return;
@@ -344,20 +416,19 @@ export const useChat = () => {
     abortControllerRef.current = new AbortController();
 
     if (isRetry) {
-      // 리트라이 시 마지막 AI 메시지 삭제
       setRooms((prev) =>
         prev.map((room) => {
-          if (room.id === currentRoomId) {
-            const messages = [...room.messages];
-            if (
-              messages.length > 0 &&
-              messages[messages.length - 1].role === "ai"
-            ) {
-              messages.pop();
-            }
-            return { ...room, messages };
+          if (room.id !== currentRoomId) return room;
+
+          const messages = [...room.messages];
+          if (
+            messages.length > 0 &&
+            messages[messages.length - 1].role === "ai"
+          ) {
+            messages.pop();
           }
-          return room;
+
+          return { ...room, messages };
         }),
       );
     } else {
@@ -389,11 +460,20 @@ export const useChat = () => {
         // ... (classify logic)
       }
 
-      // 히스토리 구성 (현재 질문은 제외하고 이전 대화만 포함)
+      const token = localStorage.getItem(TOKEN_KEY);
+      if (!token) {
+        setIsAuthenticated(false);
+        handleRequiredLogin();
+        return;
+      }
+
       let baseMessages = [...currentRoom.messages];
-      
-      // 현재 메시지 목록의 마지막이 방금 추가한 'user' 메시지라면 제거 (히스토리에 중복 포함 방지)
-      if (baseMessages.length > 0 && baseMessages[baseMessages.length - 1].content === content) {
+
+      if (
+        baseMessages.length > 0 &&
+        baseMessages[baseMessages.length - 1].role === "user" &&
+        baseMessages[baseMessages.length - 1].content === content
+      ) {
         baseMessages.pop();
       }
 
@@ -402,154 +482,124 @@ export const useChat = () => {
         : baseMessages.slice(-MAX_HISTORY_LENGTH).map((msg) => ({
             role:
               msg.role === "ai" || msg.role === "assistant"
-                ? "assistant" // assistant로 복구
+                ? "assistant"
                 : "user",
             content: msg.content,
           }));
 
-      // URL 타임스탬프 제거 및 fetch 옵션 유지
-      const response = await fetch(CHAT_URL, {
-        method: "POST",
-        cache: "no-cache",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${localStorage.getItem(TOKEN_KEY)}`,
-        },
-        body: JSON.stringify({
-          question: content,
-          history,
-        }),
-        signal: abortControllerRef.current.signal,
+      const requestBody = JSON.stringify({
+        question: content,
+        history,
       });
 
-      if (response.status === 401) {
-        handleRequiredLogin();
-        return;
-      }
-
-      if (!response.ok) throw new Error("챗봇 서버 응답 실패");
-
-      const reader = response.body?.getReader();
-      const decoder = new TextDecoder();
-      let fullContent = "";
-
-      if (reader) {
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
-
-          const chunk = decoder.decode(value, { stream: true });
-          fullContent += chunk;
-
-          const detectedButtons: {
-            label: string;
-            url: string;
-            primary?: boolean;
-          }[] = [];
-
-          // 1. [버튼: KEY] 패턴 감지 (BUTTON_MAP 기반)
-          Object.keys(BUTTON_MAP).forEach((key) => {
-            const pattern = new RegExp(`\\[버튼:\\s*${key}\\]`, "g");
-            if (pattern.test(fullContent)) {
-              if (!detectedButtons.find((b) => b.url === BUTTON_MAP[key].url)) {
-                detectedButtons.push({ ...BUTTON_MAP[key], primary: true });
-              }
-            }
-            // 기존 키워드 포함 방식도 하위 호환성을 위해 유지 (필요 시)
-            else if (
-              fullContent.includes(key) &&
-              !fullContent.includes(`[버튼: ${key}]`)
-            ) {
-              if (!detectedButtons.find((b) => b.url === BUTTON_MAP[key].url)) {
-                detectedButtons.push(BUTTON_MAP[key]);
-              }
-            }
+      for (let attempt = 0; attempt < 2; attempt += 1) {
+        try {
+          const response = await fetch(CHAT_URL, {
+            method: "POST",
+            cache: "no-cache",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+            body: requestBody,
+            signal: abortControllerRef.current.signal,
           });
 
-          // 2. [버튼: 라벨|URL] 패턴 감지 및 추출
-          const customButtonRegex = /\[버튼:\s*([^|\]]+)\|([^\]]+)\]/g;
-          let match;
-          while ((match = customButtonRegex.exec(fullContent)) !== null) {
-            const [, label, url] = match;
-            if (!detectedButtons.find((b) => b.url === url.trim())) {
-              detectedButtons.push({
-                label: label.trim(),
-                url: url.trim(),
-                primary: true,
-              });
-            }
+          if (response.status === 401) {
+            localStorage.removeItem(TOKEN_KEY);
+            setIsAuthenticated(false);
+            handleRequiredLogin();
+            return;
           }
 
-          // 모든 [버튼: ...] 패턴을 본문에서 제거
-          const displayContent = fullContent
-            .replace(/\[버튼:\s*[^\]|]+\|[^\]]+\]/g, "") // [버튼: 라벨|URL] 제거
-            .replace(/\[버튼:\s*[^\]]+\]/g, "") // [버튼: KEY] 제거
-            .trim();
+          if (!response.ok) {
+            const raw = await response.text().catch(() => "");
+            const detail = parseErrorDetail(raw) || response.statusText;
 
-          void displayContent;
+            console.error("Chat HTTP error", {
+              status: response.status,
+              statusText: response.statusText,
+              detail,
+              raw,
+            });
 
-          const streamingMessage = injectButtonPlaceholders(
+            throw new ChatHttpError(response.status, detail);
+          }
+
+          const reader = response.body?.getReader();
+          if (!reader) {
+            throw new Error("응답 스트림이 없습니다.");
+          }
+
+          const decoder = new TextDecoder();
+          let fullContent = "";
+
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+
+            const chunk = decoder.decode(value, { stream: true });
+            fullContent += chunk;
+
+            const streamingMessage = injectButtonPlaceholders(
+              fullContent,
+              BUTTON_MAP,
+            );
+
+            updateAiMessage(
+              streamingMessage.content,
+              false,
+              streamingMessage.buttons,
+            );
+          }
+
+          fullContent += decoder.decode();
+
+          const streamErrorMatch = fullContent.match(STREAM_ERROR_REGEX);
+          if (streamErrorMatch) {
+            console.error("Chat stream error", {
+              type: streamErrorMatch[1],
+              detail: streamErrorMatch[2].trim(),
+              fullContent,
+            });
+            throw new Error(
+              "답변 생성 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.",
+            );
+          }
+
+          if (!fullContent.trim()) {
+            throw new Error("응답이 비어 있습니다.");
+          }
+
+          const finalMessage = injectButtonPlaceholders(
             fullContent,
             BUTTON_MAP,
           );
 
-          updateAiMessage(
-            streamingMessage.content,
-            false,
-            streamingMessage.buttons,
-          );
-        }
-      }
-
-      // 스트리밍 완료 후 최종 처리
-      const finalButtons: { label: string; url: string; primary?: boolean }[] =
-        [];
-
-      // BUTTON_MAP 기반 최종 확인
-      Object.keys(BUTTON_MAP).forEach((key) => {
-        const pattern = new RegExp(`\\[버튼:\\s*${key}\\]`, "g");
-        if (
-          pattern.test(fullContent) ||
-          (fullContent.includes(key) && !fullContent.includes(`[버튼: ${key}]`))
-        ) {
-          if (!finalButtons.find((b) => b.url === BUTTON_MAP[key].url)) {
-            finalButtons.push({ ...BUTTON_MAP[key], primary: true });
+          updateAiMessage(finalMessage.content, true, finalMessage.buttons);
+          return;
+        } catch (error) {
+          if (isAbortError(error)) {
+            return;
           }
-        }
-      });
 
-      // 커스텀 버튼 최종 확인
-      const customButtonRegex = /\[버튼:\s*([^|\]]+)\|([^\]]+)\]/g;
-      let match;
-      while ((match = customButtonRegex.exec(fullContent)) !== null) {
-        const [, label, url] = match;
-        if (!finalButtons.find((b) => b.url === url.trim())) {
-          finalButtons.push({
-            label: label.trim(),
-            url: url.trim(),
-            primary: true,
-          });
+          if (attempt === 0 && shouldRetryChat(error)) {
+            console.warn("Retrying chat after transient error", error);
+            await sleep(1500);
+
+            if (abortControllerRef.current?.signal.aborted) {
+              return;
+            }
+            continue;
+          }
+
+          throw error;
         }
       }
-
-      const finalDisplayContent = fullContent
-        .replace(/\[버튼:\s*[^\]|]+\|[^\]]+\]/g, "")
-        .replace(/\[버튼:\s*[^\]]+\]/g, "")
-        .trim();
-
-      void finalDisplayContent;
-
-      const finalMessage = injectButtonPlaceholders(fullContent, BUTTON_MAP);
-
-      updateAiMessage(
-        finalMessage.content,
-        true,
-        finalMessage.buttons,
-      );
-    } catch (error: any) {
-      if (error.name === "AbortError") return;
+    } catch (error) {
+      if (isAbortError(error)) return;
       console.error("Chat error:", error);
-      updateAiMessage("죄송합니다. 오류가 발생했습니다.", true);
+      updateAiMessage(getChatErrorMessage(error), true);
     } finally {
       setIsLoading(false);
       abortControllerRef.current = null;
@@ -566,7 +616,6 @@ export const useChat = () => {
       const actualIndex = messages.length - 1 - lastUserIndex;
       const lastUserContent = messages[actualIndex].content;
 
-      // 1. 재생성할 질문 '이전'까지의 히스토리만 추출
       const historyBeforeThis = messages
         .slice(0, actualIndex)
         .slice(-MAX_HISTORY_LENGTH)
@@ -578,22 +627,18 @@ export const useChat = () => {
           content: msg.content,
         }));
 
-      // 2. 상태에서 질문 이후의 답변(들)만 삭제 (질문은 화면에 유지)
       setRooms((prev) =>
         prev.map((room) => {
-          if (room.id === currentRoomId) {
-            return {
-              ...room,
-              messages: room.messages.slice(0, actualIndex + 1),
-            };
-          }
-          return room;
+          if (room.id !== currentRoomId) return room;
+
+          return {
+            ...room,
+            messages: room.messages.slice(0, actualIndex + 1),
+          };
         }),
       );
 
-      // 3. 리트라이 모드로 다시 전송 (질문을 새로 추가하지 않음)
-      // isRetry: true는 프론트 내부 함수 인자일 뿐, 서버 API 스펙과는 무관합니다.
-      sendMessage(lastUserContent, true, historyBeforeThis);
+      void sendMessage(lastUserContent, true, historyBeforeThis);
     }
   };
 

@@ -374,7 +374,7 @@ export const useChat = () => {
         spacer.style.height = `${requiredSpacerHeight}px`;
       }
 
-      if (isAutoScrollEnabledRef.current) {
+      if (isAutoScrollEnabledRef.current && !isLoading) {
         scrollToBottom();
       }
     }

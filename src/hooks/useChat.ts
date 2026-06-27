@@ -325,26 +325,19 @@ export const useChat = () => {
         const lastUserMessage = userMessages[userMessages.length - 1] as HTMLElement;
         const containerRect = chatArea.getBoundingClientRect();
         const targetRect = lastUserMessage.getBoundingClientRect();
-        
-        // Calculate and set the initial required spacer height
+        const scrollOffset = targetRect.top - containerRect.top + chatArea.scrollTop;
+
+        // Calculate and set the initial required spacer height dynamically and mathematically
         if (spacer) {
-          let heightBelow = 0;
-          let sibling = lastUserMessage.nextElementSibling;
-          while (sibling) {
-            if (sibling.id !== "scroll-spacer" && sibling.tagName !== "STYLE") {
-              heightBelow += (sibling as HTMLElement).offsetHeight || 0;
-            }
-            sibling = sibling.nextElementSibling;
-          }
+          const currentSpacerHeight = spacer.offsetHeight || 0;
+          const scrollHeightWithoutSpacer = chatArea.scrollHeight - currentSpacerHeight;
           const requiredSpacerHeight = Math.max(
             0,
-            chatArea.clientHeight - lastUserMessage.offsetHeight - heightBelow
+            scrollOffset + chatArea.clientHeight - scrollHeightWithoutSpacer
           );
           spacer.style.height = `${requiredSpacerHeight}px`;
         }
 
-        const scrollOffset = targetRect.top - containerRect.top + chatArea.scrollTop;
-        
         requestAnimationFrame(() => {
           chatArea.scrollTo({
             top: scrollOffset,
@@ -357,19 +350,15 @@ export const useChat = () => {
       const userMessages = chatArea.querySelectorAll(".chat-message-user");
       if (userMessages.length > 0 && spacer && isLoading) {
         const lastUserMessage = userMessages[userMessages.length - 1] as HTMLElement;
-        
-        let heightBelow = 0;
-        let sibling = lastUserMessage.nextElementSibling;
-        while (sibling) {
-          if (sibling.id !== "scroll-spacer" && sibling.tagName !== "STYLE") {
-            heightBelow += (sibling as HTMLElement).offsetHeight || 0;
-          }
-          sibling = sibling.nextElementSibling;
-        }
-        
+        const containerRect = chatArea.getBoundingClientRect();
+        const targetRect = lastUserMessage.getBoundingClientRect();
+        const scrollOffset = targetRect.top - containerRect.top + chatArea.scrollTop;
+
+        const currentSpacerHeight = spacer.offsetHeight || 0;
+        const scrollHeightWithoutSpacer = chatArea.scrollHeight - currentSpacerHeight;
         const requiredSpacerHeight = Math.max(
           0,
-          chatArea.clientHeight - lastUserMessage.offsetHeight - heightBelow
+          scrollOffset + chatArea.clientHeight - scrollHeightWithoutSpacer
         );
         spacer.style.height = `${requiredSpacerHeight}px`;
       }

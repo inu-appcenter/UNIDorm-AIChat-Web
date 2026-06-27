@@ -221,6 +221,36 @@ const cleanUrl = (url: string) => {
 const COMBINED_LINK_REGEX =
   /\[([^\]]*)\]\((https?:\/\/[^\s)]+)\)|(https?:\/\/[^\s가-힣\]()]+)/g;
 
+/**
+ * 링크 텍스트가 URL 날것인 경우 "바로가기"로 대체하는 헬퍼 함수
+ */
+const renderLinkText = (children: React.ReactNode, href?: string) => {
+  if (typeof children === "string") {
+    const trimmed = children.trim();
+    if (
+      trimmed.startsWith("http://") ||
+      trimmed.startsWith("https://") ||
+      trimmed === href
+    ) {
+      return "바로가기";
+    }
+  }
+  if (Array.isArray(children) && children.length === 1) {
+    const firstChild = children[0];
+    if (typeof firstChild === "string") {
+      const trimmed = firstChild.trim();
+      if (
+        trimmed.startsWith("http://") ||
+        trimmed.startsWith("https://") ||
+        trimmed === href
+      ) {
+        return "바로가기";
+      }
+    }
+  }
+  return children;
+};
+
 export const ChatMessage: React.FC<ChatMessageProps> = ({
   role,
   content,
@@ -324,8 +354,10 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
       <ReactMarkdown
         remarkPlugins={[remarkGfm]}
         components={{
-          a: ({ ...props }) => (
-            <a {...props} target="_blank" rel="noopener noreferrer" />
+          a: ({ children, href, ...props }) => (
+            <a {...props} href={href} target="_blank" rel="noopener noreferrer">
+              {renderLinkText(children, href)}
+            </a>
           ),
         }}
       >
@@ -362,8 +394,10 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
           key={key}
           remarkPlugins={[remarkGfm]}
           components={{
-            a: ({ ...props }) => (
-              <a {...props} target="_blank" rel="noopener noreferrer" />
+            a: ({ children, href, ...props }) => (
+              <a {...props} href={href} target="_blank" rel="noopener noreferrer">
+                {renderLinkText(children, href)}
+              </a>
             ),
           }}
         >

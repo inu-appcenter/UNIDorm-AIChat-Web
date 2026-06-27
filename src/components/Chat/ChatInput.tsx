@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from "react";
 import styled from "styled-components";
-import { Send, Square } from "lucide-react";
+import { ArrowRight, Square } from "lucide-react";
 import { COLORS } from "../../constants/colors";
 import { type ChatbotType } from "../../constants/api";
 
@@ -21,9 +21,9 @@ const GlowContainer = styled.div<{ $isFocused: boolean; $isLoading: boolean }>`
   position: relative;
   border-radius: 24px;
   background: transparent;
-  box-shadow: 0px 2px 10px 0px rgba(0, 0, 0, 0.08);
+  box-shadow: 0px 2px 10px 0px rgba(0, 0, 0, 0.1); /* Figma: shadow-[0px_2px_10px_0px_rgba(0,0,0,0.1)] */
   transition: all 0.3s ease;
-  border: 1px solid ${(props) => (props.$isFocused ? COLORS.figmaBlue : "transparent")};
+  border: 1px solid ${(props) => (props.$isFocused ? "rgba(9, 88, 217, 0.3)" : "rgba(0, 0, 0, 0.05)")};
 `;
 
 const InputForm = styled.form`
@@ -31,12 +31,12 @@ const InputForm = styled.form`
   align-items: center;
   background-color: ${COLORS.bgWhite};
   border-radius: 24px;
-  padding: 6px 8px 6px 20px;
+  padding: 6px 6px 6px 20px;
   border: none;
   width: 100%;
   position: relative;
   z-index: 1;
-  min-height: 52px;
+  min-height: 53px; /* Figma: h-[53px] */
   box-sizing: border-box;
 `;
 
@@ -44,8 +44,8 @@ const TextInput = styled.textarea`
   flex: 1;
   border: none;
   background: transparent;
-  padding: 8px 0;
-  font-size: 15px;
+  padding: 0;
+  font-size: 16px; /* Figma: text-[16px] */
   resize: none;
   outline: none;
   max-height: 120px;
@@ -53,9 +53,10 @@ const TextInput = styled.textarea`
   color: ${COLORS.textDark};
   line-height: 1.4;
   margin-right: 10px;
+  align-self: center;
   
   &::placeholder {
-    color: #8e8e93;
+    color: #8e8e93; /* Figma: text-[color:var(--6,#8e8e93)] */
   }
   
   &::-webkit-scrollbar {
@@ -83,6 +84,8 @@ const ActionButton = styled.button<{ $isActive: boolean; $isStop?: boolean }>`
     props.$isActive || props.$isStop ? "pointer" : "default"};
   transition: all 0.2s ease;
   flex-shrink: 0;
+  
+  /* Figma shadow: shadow-[0px_0px_10px_0px_rgba(145,206,255,0.6)] */
   box-shadow: ${(props) =>
     props.$isActive && !props.$isStop
       ? "0px 0px 10px 0px rgba(145, 206, 255, 0.6)"
@@ -177,7 +180,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
               style={{ 
                 flex: 1, 
                 padding: "10px 0", 
-                fontSize: "15px", 
+                fontSize: "16px", 
                 color: "#8e8e93",
                 userSelect: "none"
               }}
@@ -210,7 +213,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
             {isLoading ? (
               <Square size={16} fill="currentColor" />
             ) : (
-              <Send size={18} />
+              <ArrowRight size={18} />
             )}
           </ActionButton>
         </InputForm>

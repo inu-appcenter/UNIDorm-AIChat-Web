@@ -270,6 +270,24 @@ const wrapTextWithSpans = (children: React.ReactNode): React.ReactNode => {
   return children;
 };
 
+const markdownComponents: any = {
+  p: ({ children }: { children: React.ReactNode }) => <p>{wrapTextWithSpans(children)}</p>,
+  li: ({ children }: { children: React.ReactNode }) => <li>{wrapTextWithSpans(children)}</li>,
+  strong: ({ children }: { children: React.ReactNode }) => <strong>{wrapTextWithSpans(children)}</strong>,
+  em: ({ children }: { children: React.ReactNode }) => <em>{wrapTextWithSpans(children)}</em>,
+  h1: ({ children }: { children: React.ReactNode }) => <h1>{wrapTextWithSpans(children)}</h1>,
+  h2: ({ children }: { children: React.ReactNode }) => <h2>{wrapTextWithSpans(children)}</h2>,
+  h3: ({ children }: { children: React.ReactNode }) => <h3>{wrapTextWithSpans(children)}</h3>,
+  h4: ({ children }: { children: React.ReactNode }) => <h4>{wrapTextWithSpans(children)}</h4>,
+  h5: ({ children }: { children: React.ReactNode }) => <h5>{wrapTextWithSpans(children)}</h5>,
+  h6: ({ children }: { children: React.ReactNode }) => <h6>{wrapTextWithSpans(children)}</h6>,
+  a: ({ children, href, ...props }: { children: React.ReactNode; href?: string; [key: string]: any }) => (
+    <a {...props} href={href} target="_blank" rel="noopener noreferrer">
+      {wrapTextWithSpans(renderLinkText(children, href))}
+    </a>
+  ),
+};
+
 export const ChatMessage: React.FC<ChatMessageProps> = ({
   role,
   content,
@@ -286,24 +304,6 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
   const isLoading = !isUser && content === "";
   const [copied, setCopied] = useState(false);
   const copyableContent = stripButtonPlaceholders(content);
-
-  const markdownComponents: any = {
-    p: ({ children }: { children: React.ReactNode }) => <p>{wrapTextWithSpans(children)}</p>,
-    li: ({ children }: { children: React.ReactNode }) => <li>{wrapTextWithSpans(children)}</li>,
-    strong: ({ children }: { children: React.ReactNode }) => <strong>{wrapTextWithSpans(children)}</strong>,
-    em: ({ children }: { children: React.ReactNode }) => <em>{wrapTextWithSpans(children)}</em>,
-    h1: ({ children }: { children: React.ReactNode }) => <h1>{wrapTextWithSpans(children)}</h1>,
-    h2: ({ children }: { children: React.ReactNode }) => <h2>{wrapTextWithSpans(children)}</h2>,
-    h3: ({ children }: { children: React.ReactNode }) => <h3>{wrapTextWithSpans(children)}</h3>,
-    h4: ({ children }: { children: React.ReactNode }) => <h4>{wrapTextWithSpans(children)}</h4>,
-    h5: ({ children }: { children: React.ReactNode }) => <h5>{wrapTextWithSpans(children)}</h5>,
-    h6: ({ children }: { children: React.ReactNode }) => <h6>{wrapTextWithSpans(children)}</h6>,
-    a: ({ children, href, ...props }: { children: React.ReactNode; href?: string; [key: string]: any }) => (
-      <a {...props} href={href} target="_blank" rel="noopener noreferrer">
-        {wrapTextWithSpans(renderLinkText(children, href))}
-      </a>
-    ),
-  };
 
   const formatTime = (ts?: number | Date) => {
     if (!ts) return "";

@@ -1,14 +1,8 @@
 import React, { useState, useRef, useEffect } from "react";
-import styled, { keyframes, css } from "styled-components";
-import { Send, Square /*, ChevronDown */ } from "lucide-react";
+import styled from "styled-components";
+import { ArrowRight, Square } from "lucide-react";
 import { COLORS } from "../../constants/colors";
-import { /* CHATBOT_LABELS, */ type ChatbotType } from "../../constants/api";
-
-/* 회전 각도 애니메이션 */
-const rotateGlow = keyframes`
-  0% { --glow-angle: 0deg; }
-  100% { --glow-angle: 360deg; }
-`;
+import { type ChatbotType } from "../../constants/api";
 
 const InputWrapper = styled.div`
   position: absolute;
@@ -25,107 +19,46 @@ const InputWrapper = styled.div`
 
 const GlowContainer = styled.div<{ $isFocused: boolean; $isLoading: boolean }>`
   position: relative;
-  border-radius: 32px;
+  border-radius: 24px;
   background: transparent;
-  transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
-
-  &::before {
-    content: "";
-    position: absolute;
-    inset: 0;
-    border-radius: 32px;
-    z-index: -1;
-    opacity: ${(props) => (props.$isFocused || props.$isLoading ? 0.8 : 0.3)};
-    transition: opacity 0.5s ease;
-
-    /* 배경 그림자 그라데이션 및 블러 효과 */
-    background: conic-gradient(
-      from var(--glow-angle, 0deg),
-      #2563eb,
-      #7c3aed,
-      #4f46e5,
-      #2563eb
-    );
-    filter: blur(12px);
-
-    ${(props) =>
-      (props.$isFocused || props.$isLoading) &&
-      css`
-        animation: ${rotateGlow} 1.5s linear infinite;
-      `}
-  }
+  box-shadow: 0px 2px 10px 0px rgba(0, 0, 0, 0.1); /* Figma: shadow-[0px_2px_10px_0px_rgba(0,0,0,0.1)] */
+  transition: all 0.3s ease;
+  border: 1px solid ${(props) => (props.$isFocused ? "rgba(9, 88, 217, 0.3)" : "rgba(0, 0, 0, 0.05)")};
 `;
 
 const InputForm = styled.form`
   display: flex;
-  align-items: flex-end;
+  align-items: center;
   background-color: ${COLORS.bgWhite};
-  border-radius: 31px;
-  padding: 8px 12px 8px 24px;
+  border-radius: 24px;
+  padding: 6px 6px 6px 20px;
   border: none;
   width: 100%;
   position: relative;
   z-index: 1;
+  min-height: 53px; /* Figma: h-[53px] */
+  box-sizing: border-box;
 `;
-
-/* AI 타입 선택 드롭다운 스타일 - 미사용 에러 방지 임시 주석
-const SelectWrapper = styled.div`
-  position: relative;
-  width: fit-content;
-  margin-left: 12px;
-  margin-bottom: -4px;
-`;
-
-const StyledSelect = styled.select`
-  appearance: none;
-  background-color: rgba(255, 255, 255, 0.9);
-  backdrop-filter: blur(8px);
-  border: 1px solid #e1e4e8;
-  border-radius: 12px;
-  padding: 6px 32px 6px 12px;
-  font-size: 12px;
-  font-weight: 600;
-  color: ${COLORS.inuBlue};
-  cursor: default;
-  outline: none;
-  transition: all 0.2s ease;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-  opacity: 0.8;
-
-  &:disabled {
-    cursor: default;
-  }
-`;
-
-const SelectIcon = styled.div`
-  position: absolute;
-  right: 10px;
-  top: 50%;
-  transform: translateY(-50%);
-  pointer-events: none;
-  display: flex;
-  align-items: center;
-  color: ${COLORS.inuBlue};
-  opacity: 0.5;
-`;
-*/
 
 const TextInput = styled.textarea`
   flex: 1;
   border: none;
   background: transparent;
-  padding: 10px 0;
-  font-size: 15px;
+  padding: 0;
+  font-size: 16px; /* Figma: text-[16px] */
   resize: none;
   outline: none;
   max-height: 120px;
   font-family: inherit;
   color: ${COLORS.textDark};
-  line-height: 1.5;
+  line-height: 1.4;
   margin-right: 10px;
+  align-self: center;
+  
   &::placeholder {
-    color: #aaaaaa;
+    color: #8e8e93; /* Figma: text-[color:var(--6,#8e8e93)] */
   }
+  
   &::-webkit-scrollbar {
     width: 0;
   }
@@ -134,7 +67,7 @@ const TextInput = styled.textarea`
 const ActionButton = styled.button<{ $isActive: boolean; $isStop?: boolean }>`
   background-color: ${(props) => {
     if (props.$isStop) return "#fff1f0";
-    return props.$isActive ? COLORS.inuBlue : "#f0f0f0";
+    return props.$isActive ? COLORS.figmaBlue : "#f0f0f0";
   }};
   color: ${(props) => {
     if (props.$isStop) return "#ff4d4f";
@@ -151,10 +84,20 @@ const ActionButton = styled.button<{ $isActive: boolean; $isStop?: boolean }>`
     props.$isActive || props.$isStop ? "pointer" : "default"};
   transition: all 0.2s ease;
   flex-shrink: 0;
-  margin-bottom: 2px;
+  
+  /* Figma shadow: shadow-[0px_0px_10px_0px_rgba(145,206,255,0.6)] */
+  box-shadow: ${(props) =>
+    props.$isActive && !props.$isStop
+      ? "0px 0px 10px 0px rgba(145, 206, 255, 0.6)"
+      : "none"};
 
   &:hover {
     background-color: ${(props) => (props.$isStop ? "#ffccc7" : "")};
+    transform: ${(props) => (props.$isActive && !props.$isStop ? "scale(1.03)" : "none")};
+  }
+  
+  &:active {
+    transform: translateY(0);
   }
 `;
 
@@ -172,8 +115,6 @@ export const ChatInput: React.FC<ChatInputProps> = ({
   onSendMessage,
   isLoading,
   onStopGeneration,
-  // selectedChatbotType,
-  // onChatbotTypeChange,
   isAuthenticated,
   onRequiredLogin,
 }) => {
@@ -224,21 +165,10 @@ export const ChatInput: React.FC<ChatInputProps> = ({
     ? "여기를 눌러 로그인하세요"
     : isLoading
       ? "답변을 생성하고 있습니다..."
-      : "질문을 입력하세요";
+      : "궁금한 점을 물어보세요!";
 
   return (
     <InputWrapper>
-      {/* 커스텀 속성 전역 선언 */}
-      <style>
-        {`
-          @property --glow-angle {
-            syntax: "<angle>";
-            initial-value: 0deg;
-            inherits: false;
-          }
-        `}
-      </style>
-
       <GlowContainer $isFocused={isFocused} $isLoading={isLoading}>
         <InputForm 
           onSubmit={handleSubmit} 
@@ -250,8 +180,8 @@ export const ChatInput: React.FC<ChatInputProps> = ({
               style={{ 
                 flex: 1, 
                 padding: "10px 0", 
-                fontSize: "15px", 
-                color: "#aaaaaa",
+                fontSize: "16px", 
+                color: "#8e8e93",
                 userSelect: "none"
               }}
             >
@@ -283,7 +213,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
             {isLoading ? (
               <Square size={16} fill="currentColor" />
             ) : (
-              <Send size={18} />
+              <ArrowRight size={18} />
             )}
           </ActionButton>
         </InputForm>

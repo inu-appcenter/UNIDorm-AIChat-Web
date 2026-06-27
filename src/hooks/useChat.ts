@@ -201,6 +201,7 @@ export const useChat = () => {
   const abortControllerRef = useRef<AbortController | null>(null);
   const isExchangingRef = useRef<boolean>(false);
   const isAutoScrollEnabledRef = useRef(true);
+  const shouldScrollUserMessageRef = useRef<boolean>(false);
 
   const currentRoom =
     rooms.find((room) => room.id === currentRoomId) || rooms[0];
@@ -300,16 +301,73 @@ export const useChat = () => {
 
   useEffect(() => {
     isAutoScrollEnabledRef.current = true;
+    const chatArea = chatAreaRef.current;
+    if (chatArea) {
+      const spacer = chatArea.querySelector("#scroll-spacer") as HTMLElement;
+      if (spacer) {
+        spacer.style.height = "0px";
+      }
+    }
     requestAnimationFrame(() => {
       scrollToBottom();
     });
   }, [currentRoomId]);
 
   useEffect(() => {
-    if (isAutoScrollEnabledRef.current) {
-      scrollToBottom();
+    const chatArea = chatAreaRef.current;
+    if (!chatArea) return;
+
+    const spacer = chatArea.querySelector("#scroll-spacer") as HTMLElement;
+
+    if (shouldScrollUserMessageRef.current) {
+      const userMessages = chatArea.querySelectorAll(".chat-message-user");
+      if (userMessages.length > 0) {
+        const lastUserMessage = userMessages[userMessages.length - 1] as HTMLElement;
+        const containerRect = chatArea.getBoundingClientRect();
+        const targetRect = lastUserMessage.getBoundingClientRect();
+        const scrollOffset = targetRect.top - containerRect.top + chatArea.scrollTop;
+
+        // Calculate and set the initial required spacer height dynamically and mathematically
+        if (spacer) {
+          const currentSpacerHeight = spacer.offsetHeight || 0;
+          const scrollHeightWithoutSpacer = chatArea.scrollHeight - currentSpacerHeight;
+          const requiredSpacerHeight = Math.max(
+            0,
+            scrollOffset + chatArea.clientHeight - scrollHeightWithoutSpacer
+          );
+          spacer.style.height = `${requiredSpacerHeight}px`;
+        }
+
+        requestAnimationFrame(() => {
+          chatArea.scrollTo({
+            top: scrollOffset,
+            behavior: "smooth"
+          });
+          shouldScrollUserMessageRef.current = false;
+        });
+      }
+    } else {
+      const userMessages = chatArea.querySelectorAll(".chat-message-user");
+      if (userMessages.length > 0 && spacer && isLoading) {
+        const lastUserMessage = userMessages[userMessages.length - 1] as HTMLElement;
+        const containerRect = chatArea.getBoundingClientRect();
+        const targetRect = lastUserMessage.getBoundingClientRect();
+        const scrollOffset = targetRect.top - containerRect.top + chatArea.scrollTop;
+
+        const currentSpacerHeight = spacer.offsetHeight || 0;
+        const scrollHeightWithoutSpacer = chatArea.scrollHeight - currentSpacerHeight;
+        const requiredSpacerHeight = Math.max(
+          0,
+          scrollOffset + chatArea.clientHeight - scrollHeightWithoutSpacer
+        );
+        spacer.style.height = `${requiredSpacerHeight}px`;
+      }
+
+      if (isAutoScrollEnabledRef.current && !isLoading) {
+        scrollToBottom();
+      }
     }
-  }, [currentRoom.messages]);
+  }, [currentRoom.messages, isLoading]);
 
   const createNewRoom = () => {
     const emptyRoom = rooms.find((room) => room.messages.length === 0);
@@ -408,7 +466,8 @@ export const useChat = () => {
   ) => {
     if (!content.trim()) return;
 
-    isAutoScrollEnabledRef.current = true;
+    isAutoScrollEnabledRef.current = false;
+    shouldScrollUserMessageRef.current = true;
 
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();

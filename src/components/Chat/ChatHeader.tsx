@@ -23,14 +23,17 @@ const HeaderTitle = styled.div`
 `;
 
 const BetaBadge = styled.span`
-  background-color: ${COLORS.inuBlue};
-  color: white;
-  font-size: 10px;
+  background: linear-gradient(142deg, #007aff 26.94%, #570099 87.68%);
+  color: #fafafa;
+  font-size: 11px;
   font-weight: 600;
-  padding: 2px 6px;
-  border-radius: 4px;
+  padding: 3px 8px;
+  border-radius: 6px;
   text-transform: uppercase;
   letter-spacing: 0.5px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   margin-top: 1px;
 `;
 
@@ -67,7 +70,7 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
       </MenuButton>
       <HeaderTitle>
         챗불이 in UNIDorm
-        <BetaBadge>Beta</BetaBadge>
+        <BetaBadge>BETA</BetaBadge>
       </HeaderTitle>
     </HeaderContainer>
   );

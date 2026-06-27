@@ -1,8 +1,9 @@
 import React, { useState } from "react";
-import styled, { keyframes } from "styled-components";
+import styled from "styled-components";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { Copy, Check, RefreshCw, ExternalLink } from "lucide-react";
+import LoadingAnimation from "../../assets/횃불이ai로딩애니메이션.gif";
 import { COLORS } from "../../constants/colors";
 import type { ChatButton as ChatButtonType } from "../../types/chat";
 import {
@@ -10,10 +11,7 @@ import {
   stripButtonPlaceholders,
 } from "../../utils/chatButtons";
 
-const bounce = keyframes`
-  0%, 80%, 100% { transform: translateY(0); }
-  40% { transform: translateY(-8px); }
-`;
+
 
 const MessageRow = styled.div<{ $isUser: boolean }>`
   width: 100%;
@@ -28,32 +26,41 @@ const BubbleContainer = styled.div<{ $isUser: boolean }>`
   display: flex;
   flex-direction: column;
   align-items: ${(props) => (props.$isUser ? "flex-end" : "flex-start")};
-  max-width: ${(props) => (props.$isUser ? "90%" : "calc(100% - 24px)")};
+  max-width: ${(props) => (props.$isUser ? "80%" : "100%")};
+  width: ${(props) => (props.$isUser ? "auto" : "100%")};
 `;
 
 const MessageBubble = styled.div<{ $isUser: boolean; $isError?: boolean }>`
-  padding: 14px 20px;
-  border-radius: 20px;
+  padding: ${(props) => (props.$isUser ? "12px 18px" : "8px 0px")};
   font-size: 15px;
   line-height: 1.6;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
   word-break: keep-all;
   overflow-wrap: anywhere;
 
   background-color: ${(props) => {
     if (props.$isError) return "#fff1f0";
-    return props.$isUser ? COLORS.inuBlue : COLORS.bgWhite;
+    return props.$isUser ? "rgba(255, 255, 255, 0.10)" : "transparent";
   }};
+
+  backdrop-filter: none;
 
   color: ${(props) => {
     if (props.$isError) return "#ff4d4f";
-    return props.$isUser ? "#ffffff" : COLORS.textDark;
+    return COLORS.textDark;
   }};
 
-  border: ${(props) => (props.$isError ? "1px solid #ffa39e" : "none")};
+  border: ${(props) => {
+    if (props.$isError) return "1px solid #ffa39e";
+    return props.$isUser ? "0.5px solid #E7E7E7" : "none";
+  }};
 
-  border-bottom-right-radius: ${(props) => (props.$isUser ? "6px" : "20px")};
-  border-bottom-left-radius: ${(props) => (props.$isUser ? "20px" : "6px")};
+  box-shadow: ${(props) => {
+    if (props.$isError) return "none";
+    return props.$isUser ? "0px 2px 10px 0px rgba(0, 0, 0, 0.03)" : "none";
+  }};
+
+  border-radius: ${(props) => (props.$isUser ? "8px 8px 0px 8px" : "0px")};
+
 
   /* Markdown Styles */
   p {
@@ -117,20 +124,11 @@ const ActionButton = styled.button`
   }
 `;
 
-const LoadingDots = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  height: 24px;
-`;
-
-const Dot = styled.div<{ $delay: string }>`
-  width: 6px;
-  height: 6px;
-  background-color: #bbbbbb;
-  border-radius: 50%;
-  animation: ${bounce} 1.4s infinite ease-in-out both;
-  animation-delay: ${(props) => props.$delay};
+const LoadingGif = styled.img`
+  width: 48px;
+  height: auto;
+  display: block;
+  margin-top: 4px;
 `;
 
 const ButtonContainer = styled.div`
@@ -146,22 +144,22 @@ const StyledButtonLink = styled.a<{ $primary?: boolean }>`
   justify-content: center;
   gap: 8px;
   padding: 10px 20px;
-  border-radius: 14px; /* 프로젝트 전반의 둥근 느낌에 맞춤 */
+  border-radius: 60px; /* Aligned to chip rounded design */
   font-size: 14px;
   font-weight: 600;
   text-decoration: none !important;
   transition: all 0.2s ease;
   cursor: pointer;
 
-  background-color: ${(props) => (props.$primary ? COLORS.inuBlue : "#ffffff")};
-  color: ${(props) => (props.$primary ? "#ffffff" : COLORS.inuBlue)} !important;
-  border: 1.5px solid ${COLORS.inuBlue};
-  box-shadow: 0 2px 6px rgba(0, 62, 147, 0.08);
+  background-color: ${(props) => (props.$primary ? COLORS.figmaBlue : "#ffffff")};
+  color: ${(props) => (props.$primary ? "#ffffff" : COLORS.figmaBlue)} !important;
+  border: 1.5px solid ${COLORS.figmaBlue};
+  box-shadow: 0 2px 6px rgba(0, 122, 255, 0.08);
 
   &:hover {
-    background-color: ${(props) => (props.$primary ? "#002d6b" : "#f0f5ff")};
+    background-color: ${(props) => (props.$primary ? "#0056b3" : "rgba(225, 236, 255, 0.2)")};
     transform: translateY(-1.5px);
-    box-shadow: 0 4px 12px rgba(0, 62, 147, 0.15);
+    box-shadow: 0 4px 12px rgba(0, 122, 255, 0.15);
   }
 
   &:active {
@@ -211,6 +209,84 @@ const cleanUrl = (url: string) => {
  */
 const COMBINED_LINK_REGEX =
   /\[([^\]]*)\]\((https?:\/\/[^\s)]+)\)|(https?:\/\/[^\s가-힣\]()]+)/g;
+
+/**
+ * 링크 텍스트가 URL 날것인 경우 "바로가기"로 대체하는 헬퍼 함수
+ */
+const renderLinkText = (children: React.ReactNode, href?: string) => {
+  if (typeof children === "string") {
+    const trimmed = children.trim();
+    if (
+      trimmed.startsWith("http://") ||
+      trimmed.startsWith("https://") ||
+      trimmed === href
+    ) {
+      return "바로가기";
+    }
+  }
+  if (Array.isArray(children) && children.length === 1) {
+    const firstChild = children[0];
+    if (typeof firstChild === "string") {
+      const trimmed = firstChild.trim();
+      if (
+        trimmed.startsWith("http://") ||
+        trimmed.startsWith("https://") ||
+        trimmed === href
+      ) {
+        return "바로가기";
+      }
+    }
+  }
+  return children;
+};
+
+/**
+ * 텍스트 노드를 단어 단위로 쪼개어 페이드인 효과(fade-in-word class)를 적용하는 헬퍼 함수
+ */
+const wrapTextWithSpans = (children: React.ReactNode): React.ReactNode => {
+  if (typeof children === "string") {
+    if (!children) return children;
+    const words = children.split(/(\s+)/);
+    return words.map((word, i) => {
+      if (word.trim() === "") {
+        return <React.Fragment key={i}>{word}</React.Fragment>;
+      }
+      return (
+        <span key={i} className="fade-in-word">
+          {word}
+        </span>
+      );
+    });
+  }
+
+  if (Array.isArray(children)) {
+    return children.map((child, index) => (
+      <React.Fragment key={index}>
+        {wrapTextWithSpans(child)}
+      </React.Fragment>
+    ));
+  }
+
+  return children;
+};
+
+const markdownComponents: any = {
+  p: ({ children }: { children: React.ReactNode }) => <p>{wrapTextWithSpans(children)}</p>,
+  li: ({ children }: { children: React.ReactNode }) => <li>{wrapTextWithSpans(children)}</li>,
+  strong: ({ children }: { children: React.ReactNode }) => <strong>{wrapTextWithSpans(children)}</strong>,
+  em: ({ children }: { children: React.ReactNode }) => <em>{wrapTextWithSpans(children)}</em>,
+  h1: ({ children }: { children: React.ReactNode }) => <h1>{wrapTextWithSpans(children)}</h1>,
+  h2: ({ children }: { children: React.ReactNode }) => <h2>{wrapTextWithSpans(children)}</h2>,
+  h3: ({ children }: { children: React.ReactNode }) => <h3>{wrapTextWithSpans(children)}</h3>,
+  h4: ({ children }: { children: React.ReactNode }) => <h4>{wrapTextWithSpans(children)}</h4>,
+  h5: ({ children }: { children: React.ReactNode }) => <h5>{wrapTextWithSpans(children)}</h5>,
+  h6: ({ children }: { children: React.ReactNode }) => <h6>{wrapTextWithSpans(children)}</h6>,
+  a: ({ children, href, ...props }: { children: React.ReactNode; href?: string; [key: string]: any }) => (
+    <a {...props} href={href} target="_blank" rel="noopener noreferrer">
+      {wrapTextWithSpans(renderLinkText(children, href))}
+    </a>
+  ),
+};
 
 export const ChatMessage: React.FC<ChatMessageProps> = ({
   role,
@@ -314,11 +390,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
     return (
       <ReactMarkdown
         remarkPlugins={[remarkGfm]}
-        components={{
-          a: ({ ...props }) => (
-            <a {...props} target="_blank" rel="noopener noreferrer" />
-          ),
-        }}
+        components={markdownComponents}
       >
         {processed}
       </ReactMarkdown>
@@ -352,11 +424,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
         <ReactMarkdown
           key={key}
           remarkPlugins={[remarkGfm]}
-          components={{
-            a: ({ ...props }) => (
-              <a {...props} target="_blank" rel="noopener noreferrer" />
-            ),
-          }}
+          components={markdownComponents}
         >
           {normalizeLinks(value)}
         </ReactMarkdown>
@@ -394,7 +462,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
   };
 
   return (
-    <MessageRow $isUser={isUser}>
+    <MessageRow $isUser={isUser} className={isUser ? "chat-message-user" : "chat-message-ai"}>
       {/*{!isUser && (*/}
       {/*  <Avatar $isUser={isUser}>*/}
       {/*    <Bot size={20} />*/}
@@ -404,11 +472,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
       <BubbleContainer $isUser={isUser}>
         <MessageBubble $isUser={isUser} $isError={isError}>
           {isLoading ? (
-            <LoadingDots>
-              <Dot $delay="-0.32s" />
-              <Dot $delay="-0.16s" />
-              <Dot $delay="0s" />
-            </LoadingDots>
+            <LoadingGif src={LoadingAnimation} alt="답변 생성 중..." />
           ) : (
             <>
               {renderRichContent()}

@@ -4,6 +4,7 @@ export const ChatArea = styled.div`
   flex: 1;
   overflow-y: auto;
   overflow-anchor: none;
+  scrollbar-gutter: stable;
   padding: 10px 20px 100px 20px;
   display: flex;
   flex-direction: column;

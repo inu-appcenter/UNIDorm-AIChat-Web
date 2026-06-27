@@ -204,7 +204,7 @@ export default function App() {
                   채팅 내용은 품질 개선을 위해 사용됩니다. 민감한 개인정보를
                   입력하지 마세요.
                 </Disclaimer>
-                <ScrollSpacer />
+                {isLoading && <ScrollSpacer />}
               </>
             )}
           </ChatArea>

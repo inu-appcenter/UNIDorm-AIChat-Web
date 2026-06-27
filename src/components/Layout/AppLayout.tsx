@@ -8,7 +8,7 @@ export const AppContainer = styled.div`
   right: 0;
   bottom: 0;
   height: 100dvh;
-  background: linear-gradient(135deg, #e2eafc 0%, #edf2f7 50%, #fcebb6 100%);
+  background: linear-gradient(163.11deg, rgb(240, 240, 255) 10.193%, rgb(253, 253, 255) 111.84%);
   /* overflow: hidden; 대신 기본 스크롤 허용하여 새로고침 제스처 인식 */
 `;
 
@@ -34,20 +34,14 @@ export const MainArea = styled.div`
   overflow: hidden;
 `;
 
-export const AmbientOrb = styled.div`
+export const AmbientOrb = styled.img`
   position: absolute;
-  top: 50%;
+  top: 404px;
   left: 50%;
-  transform: translate(-50%, -50%);
-  width: 350px;
-  height: 350px;
-  background: radial-gradient(
-    circle,
-    rgba(0, 62, 147, 0.12) 0%,
-    rgba(0, 62, 147, 0) 70%
-  );
-  filter: blur(40px);
-  border-radius: 50%;
+  transform: translateX(-50%);
+  width: 512px;
+  height: 549.5px;
   pointer-events: none;
   z-index: 0;
+  opacity: 0.6;
 `;

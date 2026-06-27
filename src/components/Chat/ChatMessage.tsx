@@ -28,32 +28,41 @@ const BubbleContainer = styled.div<{ $isUser: boolean }>`
   display: flex;
   flex-direction: column;
   align-items: ${(props) => (props.$isUser ? "flex-end" : "flex-start")};
-  max-width: ${(props) => (props.$isUser ? "90%" : "calc(100% - 24px)")};
+  max-width: ${(props) => (props.$isUser ? "80%" : "100%")};
+  width: ${(props) => (props.$isUser ? "auto" : "100%")};
 `;
 
 const MessageBubble = styled.div<{ $isUser: boolean; $isError?: boolean }>`
-  padding: 14px 20px;
-  border-radius: 20px;
+  padding: ${(props) => (props.$isUser ? "12px 18px" : "8px 0px")};
   font-size: 15px;
   line-height: 1.6;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
   word-break: keep-all;
   overflow-wrap: anywhere;
 
   background-color: ${(props) => {
     if (props.$isError) return "#fff1f0";
-    return props.$isUser ? COLORS.inuBlue : COLORS.bgWhite;
+    return props.$isUser ? "rgba(255, 255, 255, 0.10)" : "transparent";
   }};
+
+  backdrop-filter: none;
 
   color: ${(props) => {
     if (props.$isError) return "#ff4d4f";
-    return props.$isUser ? "#ffffff" : COLORS.textDark;
+    return COLORS.textDark;
   }};
 
-  border: ${(props) => (props.$isError ? "1px solid #ffa39e" : "none")};
+  border: ${(props) => {
+    if (props.$isError) return "1px solid #ffa39e";
+    return props.$isUser ? "0.5px solid #E7E7E7" : "none";
+  }};
 
-  border-bottom-right-radius: ${(props) => (props.$isUser ? "6px" : "20px")};
-  border-bottom-left-radius: ${(props) => (props.$isUser ? "20px" : "6px")};
+  box-shadow: ${(props) => {
+    if (props.$isError) return "none";
+    return props.$isUser ? "0px 2px 10px 0px rgba(0, 0, 0, 0.03)" : "none";
+  }};
+
+  border-radius: ${(props) => (props.$isUser ? "8px 8px 0px 8px" : "0px")};
+
 
   /* Markdown Styles */
   p {
@@ -146,22 +155,22 @@ const StyledButtonLink = styled.a<{ $primary?: boolean }>`
   justify-content: center;
   gap: 8px;
   padding: 10px 20px;
-  border-radius: 14px; /* 프로젝트 전반의 둥근 느낌에 맞춤 */
+  border-radius: 60px; /* Aligned to chip rounded design */
   font-size: 14px;
   font-weight: 600;
   text-decoration: none !important;
   transition: all 0.2s ease;
   cursor: pointer;
 
-  background-color: ${(props) => (props.$primary ? COLORS.inuBlue : "#ffffff")};
-  color: ${(props) => (props.$primary ? "#ffffff" : COLORS.inuBlue)} !important;
-  border: 1.5px solid ${COLORS.inuBlue};
-  box-shadow: 0 2px 6px rgba(0, 62, 147, 0.08);
+  background-color: ${(props) => (props.$primary ? COLORS.figmaBlue : "#ffffff")};
+  color: ${(props) => (props.$primary ? "#ffffff" : COLORS.figmaBlue)} !important;
+  border: 1.5px solid ${COLORS.figmaBlue};
+  box-shadow: 0 2px 6px rgba(0, 122, 255, 0.08);
 
   &:hover {
-    background-color: ${(props) => (props.$primary ? "#002d6b" : "#f0f5ff")};
+    background-color: ${(props) => (props.$primary ? "#0056b3" : "rgba(225, 236, 255, 0.2)")};
     transform: translateY(-1.5px);
-    box-shadow: 0 4px 12px rgba(0, 62, 147, 0.15);
+    box-shadow: 0 4px 12px rgba(0, 122, 255, 0.15);
   }
 
   &:active {

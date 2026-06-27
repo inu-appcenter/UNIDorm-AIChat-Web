@@ -16,12 +16,13 @@ import { ChatMessage } from "./components/Chat/ChatMessage";
 import { ChatInput } from "./components/Chat/ChatInput";
 import { GuideScreen } from "./components/Chat/GuideScreen";
 import { COLORS } from "./constants/colors";
+import ellipse2 from "./assets/ellipse2.svg";
 
 const Disclaimer = styled.div`
   font-size: 11px;
   color: ${COLORS.textMuted};
   //text-align: center;
-  padding: 10px 20px;
+  padding: 10px 0px;
   opacity: 0.7;
   line-height: 1.4;
   width: 100%;
@@ -143,7 +144,7 @@ export default function App() {
         />
 
         <MainArea>
-          <AmbientOrb />
+          <AmbientOrb src={ellipse2} alt="" />
 
           <ChatHeader
             isSidebarOpen={isSidebarOpen}
@@ -190,13 +191,11 @@ export default function App() {
                   </React.Fragment>
                 ))}
                 <Disclaimer>
-                  챗불이는 AI이며 실수할 수 있습니다.
-                  <br />
-                  중요한 정보는 직접 확인하세요.
+                  챗불이는 실수할 수 있으니 중요한 정보는 직접 확인하세요.
                   <br />첫 질문 답변은 오래 걸릴 수 있습니다.(5초 이상)
                   <br />
-                  채팅 내용은 품질 개선을 위해 보관되며, 목적 달성 후
-                  파기됩니다. 민감한 개인정보를 입력하지 마세요.
+                  채팅 내용은 품질 개선을 위해 사용됩니다. 민감한 개인정보를
+                  입력하지 마세요.
                 </Disclaimer>
               </>
             )}

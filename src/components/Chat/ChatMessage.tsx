@@ -1,8 +1,9 @@
 import React, { useState } from "react";
-import styled, { keyframes } from "styled-components";
+import styled from "styled-components";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { Copy, Check, RefreshCw, ExternalLink } from "lucide-react";
+import LoadingAnimation from "../../assets/횃불이ai로딩애니메이션.gif";
 import { COLORS } from "../../constants/colors";
 import type { ChatButton as ChatButtonType } from "../../types/chat";
 import {
@@ -10,10 +11,7 @@ import {
   stripButtonPlaceholders,
 } from "../../utils/chatButtons";
 
-const bounce = keyframes`
-  0%, 80%, 100% { transform: translateY(0); }
-  40% { transform: translateY(-8px); }
-`;
+
 
 const MessageRow = styled.div<{ $isUser: boolean }>`
   width: 100%;
@@ -126,20 +124,11 @@ const ActionButton = styled.button`
   }
 `;
 
-const LoadingDots = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  height: 24px;
-`;
-
-const Dot = styled.div<{ $delay: string }>`
-  width: 6px;
-  height: 6px;
-  background-color: #bbbbbb;
-  border-radius: 50%;
-  animation: ${bounce} 1.4s infinite ease-in-out both;
-  animation-delay: ${(props) => props.$delay};
+const LoadingGif = styled.img`
+  width: 48px;
+  height: auto;
+  display: block;
+  margin-top: 4px;
 `;
 
 const ButtonContainer = styled.div`
@@ -447,11 +436,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
       <BubbleContainer $isUser={isUser}>
         <MessageBubble $isUser={isUser} $isError={isError}>
           {isLoading ? (
-            <LoadingDots>
-              <Dot $delay="-0.32s" />
-              <Dot $delay="-0.16s" />
-              <Dot $delay="0s" />
-            </LoadingDots>
+            <LoadingGif src={LoadingAnimation} alt="답변 생성 중..." />
           ) : (
             <>
               {renderRichContent()}

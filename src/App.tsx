@@ -45,7 +45,7 @@ const DateSeparatorContainer = styled.div`
   align-items: center;
   width: 100%;
   max-width: 800px;
-  margin: 32px 0 16px 0;
+  margin: 12px 0;
 `;
 
 const DateLine = styled.div`

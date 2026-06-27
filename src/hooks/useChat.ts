@@ -201,6 +201,7 @@ export const useChat = () => {
   const abortControllerRef = useRef<AbortController | null>(null);
   const isExchangingRef = useRef<boolean>(false);
   const isAutoScrollEnabledRef = useRef(true);
+  const shouldScrollUserMessageRef = useRef<boolean>(false);
 
   const currentRoom =
     rooms.find((room) => room.id === currentRoomId) || rooms[0];
@@ -306,7 +307,16 @@ export const useChat = () => {
   }, [currentRoomId]);
 
   useEffect(() => {
-    if (isAutoScrollEnabledRef.current) {
+    if (shouldScrollUserMessageRef.current && chatAreaRef.current) {
+      const userMessages = chatAreaRef.current.querySelectorAll(".chat-message-user");
+      if (userMessages.length > 0) {
+        const lastUserMessage = userMessages[userMessages.length - 1] as HTMLElement;
+        requestAnimationFrame(() => {
+          lastUserMessage.scrollIntoView({ behavior: "smooth", block: "start" });
+          shouldScrollUserMessageRef.current = false;
+        });
+      }
+    } else if (isAutoScrollEnabledRef.current) {
       scrollToBottom();
     }
   }, [currentRoom.messages]);
@@ -408,7 +418,8 @@ export const useChat = () => {
   ) => {
     if (!content.trim()) return;
 
-    isAutoScrollEnabledRef.current = true;
+    isAutoScrollEnabledRef.current = false;
+    shouldScrollUserMessageRef.current = true;
 
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();

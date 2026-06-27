@@ -403,7 +403,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
   };
 
   return (
-    <MessageRow $isUser={isUser}>
+    <MessageRow $isUser={isUser} className={isUser ? "chat-message-user" : "chat-message-ai"}>
       {/*{!isUser && (*/}
       {/*  <Avatar $isUser={isUser}>*/}
       {/*    <Bot size={20} />*/}

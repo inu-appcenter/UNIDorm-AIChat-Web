@@ -21,4 +21,17 @@ export const GlobalStyle = createGlobalStyle`
             Roboto,
             sans-serif;
     }
+    @keyframes fadeInWord {
+        from {
+            opacity: 0;
+        }
+        to {
+            opacity: 1;
+        }
+    }
+
+    .fade-in-word {
+        display: inline;
+        animation: fadeInWord 0.2s ease-out forwards;
+    }
 `;

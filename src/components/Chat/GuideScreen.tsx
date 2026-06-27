@@ -16,15 +16,16 @@ const GuideScreenContainer = styled.div`
 
 const LogoImage = styled.img`
   width: 42px;
-  height: 35.3px;
-  margin-bottom: 12px;
+  height: auto;
+  object-fit: contain;
+  //margin-bottom: 12px;
   margin-left: 0px;
   align-self: flex-start;
   pointer-events: none;
 `;
 
 const WelcomeBubble = styled.div`
-  background: rgba(255, 255, 255, 0.10);
+  background: rgba(255, 255, 255, 0.1);
   border: 0.5px solid #e7e7e7;
   border-radius: 0px 8px 8px 8px;
   padding: 16px 20px;
@@ -38,7 +39,10 @@ const WelcomeBubble = styled.div`
 
 const WelcomeText = styled.p`
   margin: 0;
-  font-family: 'Pretendard', -apple-system, sans-serif;
+  font-family:
+    "Pretendard",
+    -apple-system,
+    sans-serif;
   font-size: 16px;
   font-weight: 500;
   line-height: 1.5;
@@ -63,7 +67,10 @@ const GuideChip = styled.button`
   border-radius: 60px;
   padding: 8px 16px;
   color: ${COLORS.figmaBlue};
-  font-family: 'Pretendard', -apple-system, sans-serif;
+  font-family:
+    "Pretendard",
+    -apple-system,
+    sans-serif;
   font-size: 14px;
   font-weight: 500;
   cursor: pointer;
@@ -158,21 +165,23 @@ export const GuideScreen: React.FC<GuideScreenProps> = ({
       "룸메 신청",
       "기숙사비 미지출 시",
     ];
-    
+
     // 나머지 질문들 필터링
     const remainingQuestions = ALL_MESSAGES.filter(
-      (msg) => !figmaQuestions.includes(msg)
+      (msg) => !figmaQuestions.includes(msg),
     );
-    
+
     // Figma 질문 5개와 나머지 질문 중 랜덤 3개를 섞어서 5개 만들기
     // 혹은 Figma 질문 5개를 우선 보여주되 매번 신선하게 하기 위해 두 버전을 적절히 섞을 수 있음.
     // 여기서는 기본적으로 피그마 질문 5개를 1순위로 포함하고 섞어 렌더링하도록 디자인 충실도를 극대화
     const mixed = [...figmaQuestions];
     if (mixed.length < 5) {
-      const extra = [...remainingQuestions].sort(() => Math.random() - 0.5).slice(0, 5 - mixed.length);
+      const extra = [...remainingQuestions]
+        .sort(() => Math.random() - 0.5)
+        .slice(0, 5 - mixed.length);
       mixed.push(...extra);
     }
-    
+
     return mixed.sort(() => Math.random() - 0.5).slice(0, 5);
   }, []);
 

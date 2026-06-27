@@ -24,17 +24,15 @@ const LogoImage = styled.img`
 `;
 
 const WelcomeBubble = styled.div`
-  background: rgba(255, 255, 255, 0.85);
-  backdrop-filter: blur(8px);
+  background: rgba(255, 255, 255, 0.10);
   border: 0.5px solid #e7e7e7;
-  border-radius: 0px 12px 12px 12px; /* Figma: rounded-bl-[8px] rounded-br-[8px] rounded-tr-[8px] */
+  border-radius: 0px 8px 8px 8px;
   padding: 16px 20px;
   margin-bottom: 24px;
   margin-left: 0px;
   margin-right: 0px;
   width: 100%;
   max-width: 100%;
-  box-shadow: 0px 2px 10px 0px rgba(0, 0, 0, 0.03);
   box-sizing: border-box;
 `;
 

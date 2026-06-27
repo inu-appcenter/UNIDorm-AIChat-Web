@@ -33,6 +33,13 @@ const Disclaimer = styled.div`
   overflow-wrap: anywhere;
 `;
 
+const ScrollSpacer = styled.div`
+  height: 70vh;
+  width: 100%;
+  pointer-events: none;
+  flex-shrink: 0;
+`;
+
 const DateSeparatorContainer = styled.div`
   display: flex;
   align-items: center;
@@ -197,6 +204,7 @@ export default function App() {
                   채팅 내용은 품질 개선을 위해 사용됩니다. 민감한 개인정보를
                   입력하지 마세요.
                 </Disclaimer>
+                <ScrollSpacer />
               </>
             )}
           </ChatArea>

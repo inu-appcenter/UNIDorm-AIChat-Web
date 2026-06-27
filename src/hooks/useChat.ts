@@ -311,8 +311,16 @@ export const useChat = () => {
       const userMessages = chatAreaRef.current.querySelectorAll(".chat-message-user");
       if (userMessages.length > 0) {
         const lastUserMessage = userMessages[userMessages.length - 1] as HTMLElement;
+        const container = chatAreaRef.current;
+        const containerRect = container.getBoundingClientRect();
+        const targetRect = lastUserMessage.getBoundingClientRect();
+        const scrollOffset = targetRect.top - containerRect.top + container.scrollTop;
+        
         requestAnimationFrame(() => {
-          lastUserMessage.scrollIntoView({ behavior: "smooth", block: "start" });
+          container.scrollTo({
+            top: scrollOffset,
+            behavior: "smooth"
+          });
           shouldScrollUserMessageRef.current = false;
         });
       }

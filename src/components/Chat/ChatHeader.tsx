@@ -8,6 +8,7 @@ import {
   GraduationCap,
 } from "lucide-react";
 import { COLORS } from "../../constants/colors";
+import TooltipMessage from "../Common/TooltipMessage";
 
 // 추후 로고 이미지 파일을 추가하려면 아래 주석을 해제하고 이미지 파일명을 적절히 설정하세요.
 // import UnidormLogoImg from "../../assets/unidorm-logo.png";
@@ -196,6 +197,14 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
 }) => {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const [showTooltip, setShowTooltip] = useState(
+    () => !localStorage.getItem("has_closed_service_tooltip")
+  );
+
+  const handleCloseTooltip = () => {
+    localStorage.setItem("has_closed_service_tooltip", "true");
+    setShowTooltip(false);
+  };
 
   useEffect(() => {
     const handleOutsideClick = (e: MouseEvent) => {
@@ -246,6 +255,17 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
           />
           <BetaBadge>BETA</BetaBadge>
         </HeaderTitle>
+
+        {showTooltip && !isDropdownOpen && (
+          <TooltipMessage
+            message="다양한 챗봇 서비스를 확인해보세요!"
+            onClose={handleCloseTooltip}
+            anchorRef={dropdownRef}
+            position="bottom"
+            align="left"
+            minWidth="220px"
+          />
+        )}
 
         {isDropdownOpen && (
           <DropdownMenu>

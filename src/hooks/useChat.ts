@@ -121,7 +121,7 @@ export const useChat = () => {
   const activeService: "unidorm" | "intip" = (rawService.toLowerCase() === "intip" ? "intip" : "unidorm");
 
   const activeTokenKey = getTokenKey(activeService);
-  const activeEndpoints = getApiEndpoints(activeService);
+  const activeEndpoints = getApiEndpoints(activeService, mode);
 
   const getFrontendBaseUrl = () => {
     if (
@@ -555,7 +555,7 @@ export const useChat = () => {
 
       const roomService = currentRoom.service || "unidorm";
       const roomTokenKey = getTokenKey(roomService);
-      const roomEndpoints = getApiEndpoints(roomService);
+      const roomEndpoints = getApiEndpoints(roomService, mode);
 
       const token = localStorage.getItem(roomTokenKey);
       if (!token) {

@@ -149,21 +149,37 @@ const MenuButton = styled.button<{ $isSidebarOpen: boolean }>`
   background: none;
   border: none;
   cursor: pointer;
-  padding: 6px;
-  margin-right: 10px;
   color: ${COLORS.textDark};
   border-radius: 8px;
-  display: ${(props) => (props.$isSidebarOpen ? "none" : "flex")};
+  display: flex;
   align-items: center;
   justify-content: center;
-  transition: background-color 0.2s ease;
+  overflow: hidden;
+  box-sizing: border-box;
+  
+  // 전환 효과 설정 (사이드바 0.3s 애니메이션과 동기화)
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+
+  // PC에서 사이드바가 열려있을 때 서서히 크기와 여백을 0으로 만들어 튀는 현상 방지
+  width: ${props => props.$isSidebarOpen ? "0px" : "36px"};
+  height: ${props => props.$isSidebarOpen ? "0px" : "36px"};
+  padding: ${props => props.$isSidebarOpen ? "0px" : "6px"};
+  margin-right: ${props => props.$isSidebarOpen ? "0px" : "10px"};
+  opacity: ${props => props.$isSidebarOpen ? 0 : 1};
+  pointer-events: ${props => props.$isSidebarOpen ? "none" : "auto"};
 
   &:hover {
     background-color: rgba(0, 0, 0, 0.05);
   }
 
   @media (max-width: 768px) {
-    display: flex;
+    // 모바일에서는 항상 일반 노출
+    width: 36px;
+    height: 36px;
+    padding: 6px;
+    margin-right: 10px;
+    opacity: 1;
+    pointer-events: auto;
   }
 `;
 

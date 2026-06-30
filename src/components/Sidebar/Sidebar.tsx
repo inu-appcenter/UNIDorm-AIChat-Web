@@ -1,9 +1,15 @@
 import React, { useState, useRef, useEffect } from "react";
 import styled from "styled-components";
-import { MessageSquare, Plus, Trash2, Edit2, Check, X } from "lucide-react";
+import { Plus, Trash2, Edit2, Check, X, Home, GraduationCap } from "lucide-react";
 import { COLORS } from "../../constants/colors";
 import type { ChatRoom } from "../../types/chat";
 import AppCenterLogo from "../../assets/텍스트O_블랙.png";
+
+// 추후 로고 이미지 파일을 추가하려면 아래 주석을 해제하고 이미지 파일명을 적절히 설정하세요.
+// import UnidormLogoImg from "../../assets/unidorm-logo.png";
+// import IntipLogoImg from "../../assets/intip-logo.png";
+const UNIDORM_LOGO_SRC: string | null = null; // UnidormLogoImg
+const INTIP_LOGO_SRC: string | null = null; // IntipLogoImg
 
 const SidebarContainer = styled.div<{ $isOpen: boolean }>`
   width: 280px;
@@ -96,18 +102,10 @@ const RoomItem = styled.div<{ $isActive: boolean }>`
 `;
 
 const RoomTitle = styled.span`
+  flex: 1;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  width: 100%;
-`;
-
-const RoomContent = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  flex: 1;
-  overflow: hidden;
 `;
 
 const RoomInput = styled.input`
@@ -150,17 +148,24 @@ const IconButton = styled.button`
   }
 `;
 
-const ServiceBadge = styled.span<{ $service: "unidorm" | "intip" }>`
-  font-size: 10px;
-  padding: 1px 5px;
-  border-radius: 6px;
-  font-weight: 600;
-  white-space: nowrap;
+const ServiceLogoCircle = styled.div<{ $service: "unidorm" | "intip" }>`
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   flex-shrink: 0;
   
-  color: ${props => props.$service === "unidorm" ? "#0046ff" : "#10b981"};
   background-color: ${props => props.$service === "unidorm" ? "#eef2ff" : "#ecfdf5"};
-  border: 1px solid ${props => props.$service === "unidorm" ? "#d0deff" : "#a7f3d0"};
+  color: ${props => props.$service === "unidorm" ? "#0046ff" : "#10b981"};
+  border: 1.5px solid ${props => props.$service === "unidorm" ? "#d0deff" : "#a7f3d0"};
+`;
+
+const ServiceLogoImage = styled.img`
+  width: 14px;
+  height: 14px;
+  object-fit: contain;
 `;
 
 const SidebarFooter = styled.div`
@@ -276,9 +281,22 @@ export const Sidebar: React.FC<SidebarProps> = ({
             key={room.id}
             $isActive={room.id === currentRoomId}
             onClick={() => onSelectRoom(room.id)}
-            style={{ alignItems: "flex-start" }}
           >
-            <MessageSquare size={16} style={{ flexShrink: 0, marginTop: "2px" }} />
+            <ServiceLogoCircle $service={room.service || "unidorm"}>
+              {(room.service || "unidorm") === "intip" ? (
+                INTIP_LOGO_SRC ? (
+                  <ServiceLogoImage src={INTIP_LOGO_SRC} alt="INTIP" />
+                ) : (
+                  <GraduationCap size={12} />
+                )
+              ) : (
+                UNIDORM_LOGO_SRC ? (
+                  <ServiceLogoImage src={UNIDORM_LOGO_SRC} alt="UNIDorm" />
+                ) : (
+                  <Home size={12} />
+                )
+              )}
+            </ServiceLogoCircle>
 
             {editingId === room.id ? (
               <>
@@ -298,14 +316,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
               </>
             ) : (
               <>
-                <RoomContent>
-                  <RoomTitle>{room.title}</RoomTitle>
-                  <ServiceBadge $service={room.service || "unidorm"} style={{ alignSelf: "flex-start" }}>
-                    {room.service === "intip" ? "학사" : "기숙사"}
-                  </ServiceBadge>
-                </RoomContent>
+                <RoomTitle>{room.title}</RoomTitle>
                 {room.messages.length > 0 && (
-                  <ActionButtons className="room-actions" style={{ marginTop: "2px" }}>
+                  <ActionButtons className="room-actions">
                     <IconButton
                       onClick={(e) => startEdit(e, room.id, room.title)}
                     >

@@ -260,7 +260,6 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
           <TooltipMessage
             message="다양한 챗봇 서비스를 확인해보세요!"
             onClose={handleCloseTooltip}
-            anchorRef={dropdownRef}
             position="bottom"
             align="left"
             minWidth="220px"

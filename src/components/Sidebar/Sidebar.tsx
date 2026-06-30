@@ -1,6 +1,15 @@
 import React, { useState, useRef, useEffect } from "react";
 import styled from "styled-components";
-import { Plus, Trash2, Edit2, Check, X, Home, GraduationCap, PanelLeftClose } from "lucide-react";
+import {
+  Plus,
+  Trash2,
+  Edit2,
+  Check,
+  X,
+  Home,
+  GraduationCap,
+  PanelLeftClose,
+} from "lucide-react";
 import { COLORS } from "../../constants/colors";
 import type { ChatRoom } from "../../types/chat";
 import AppCenterLogo from "../../assets/텍스트O_블랙.png";
@@ -21,7 +30,7 @@ const SidebarContainer = styled.div<{ $isOpen: boolean }>`
   border-right: 1px solid rgba(0, 0, 0, 0.08);
   display: flex;
   flex-direction: column;
-  padding: 20px 15px;
+  padding: 16px 8px;
   transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
   z-index: 50;
 
@@ -61,8 +70,8 @@ const SidebarBrand = styled.div`
 `;
 
 const BrandLogo = styled.img`
-  width: 24px;
-  height: 24px;
+  width: 32px;
+  height: 32px;
   object-fit: contain;
 `;
 
@@ -70,7 +79,10 @@ const BrandName = styled.span`
   font-size: 16px;
   font-weight: 700;
   color: ${COLORS.textDark};
-  font-family: "Pretendard", -apple-system, sans-serif;
+  font-family:
+    "Pretendard",
+    -apple-system,
+    sans-serif;
 `;
 
 const CollapseButton = styled.button`
@@ -97,7 +109,7 @@ const NewChatButton = styled.button`
   justify-content: center;
   gap: 8px;
   width: 100%;
-  padding: 14px;
+  padding: 8px;
   background-color: rgba(255, 255, 255, 0.5);
   color: ${COLORS.textDark};
   border: 1px solid rgba(0, 0, 0, 0.1);
@@ -130,8 +142,8 @@ const RoomList = styled.div`
 const RoomItem = styled.div<{ $isActive: boolean }>`
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 12px 14px;
+  gap: 8px;
+  padding: 8px;
   border-radius: 16px;
   cursor: pointer;
   font-size: 14px;
@@ -203,10 +215,12 @@ const ServiceLogoCircle = styled.div<{ $service: "unidorm" | "intip" }>`
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  
-  background-color: ${props => props.$service === "unidorm" ? "#eef2ff" : "#ecfdf5"};
-  color: ${props => props.$service === "unidorm" ? "#0046ff" : "#10b981"};
-  border: 1.5px solid ${props => props.$service === "unidorm" ? "#d0deff" : "#a7f3d0"};
+
+  background-color: ${(props) =>
+    props.$service === "unidorm" ? "#eef2ff" : "#ecfdf5"};
+  color: ${(props) => (props.$service === "unidorm" ? "#0046ff" : "#10b981")};
+  border: 1.5px solid
+    ${(props) => (props.$service === "unidorm" ? "#d0deff" : "#a7f3d0")};
 `;
 
 const ServiceLogoImage = styled.img`
@@ -348,12 +362,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 ) : (
                   <GraduationCap size={12} />
                 )
+              ) : UNIDORM_LOGO_SRC ? (
+                <ServiceLogoImage src={UNIDORM_LOGO_SRC} alt="UNIDorm" />
               ) : (
-                UNIDORM_LOGO_SRC ? (
-                  <ServiceLogoImage src={UNIDORM_LOGO_SRC} alt="UNIDorm" />
-                ) : (
-                  <Home size={12} />
-                )
+                <Home size={12} />
               )}
             </ServiceLogoCircle>
 

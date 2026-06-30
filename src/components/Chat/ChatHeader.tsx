@@ -1,6 +1,12 @@
 import React, { useState, useRef, useEffect } from "react";
 import styled from "styled-components";
-import { Menu, PanelLeftClose, ChevronDown, Home, GraduationCap } from "lucide-react";
+import {
+  Menu,
+  PanelLeftClose,
+  ChevronDown,
+  Home,
+  GraduationCap,
+} from "lucide-react";
 import { COLORS } from "../../constants/colors";
 
 // 추후 로고 이미지 파일을 추가하려면 아래 주석을 해제하고 이미지 파일명을 적절히 설정하세요.
@@ -38,7 +44,7 @@ const HeaderTitle = styled.div`
   padding: 6px 10px;
   border-radius: 12px;
   transition: background-color 0.2s ease;
-  
+
   &:hover {
     background-color: rgba(0, 0, 0, 0.05);
   }
@@ -94,7 +100,7 @@ const DropdownItem = styled.div<{ $isActive: boolean }>`
   border-radius: 12px;
   cursor: pointer;
   transition: all 0.2s ease;
-  background-color: ${props => props.$isActive ? "#f0f4fa" : "transparent"};
+  background-color: ${(props) => (props.$isActive ? "#f0f4fa" : "transparent")};
   display: flex;
   align-items: center;
   gap: 12px;
@@ -107,7 +113,7 @@ const DropdownItem = styled.div<{ $isActive: boolean }>`
 const ItemTitle = styled.div<{ $isActive: boolean }>`
   font-size: 14px;
   font-weight: 700;
-  color: ${props => props.$isActive ? COLORS.inuBlue : COLORS.textDark};
+  color: ${(props) => (props.$isActive ? COLORS.inuBlue : COLORS.textDark)};
   margin-bottom: 2px;
 `;
 
@@ -125,10 +131,12 @@ const LogoCircle = styled.div<{ $service: "unidorm" | "intip" }>`
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  
-  background-color: ${props => props.$service === "unidorm" ? "#eef2ff" : "#ecfdf5"};
-  color: ${props => props.$service === "unidorm" ? "#0046ff" : "#10b981"};
-  border: 1px solid ${props => props.$service === "unidorm" ? "#d0deff" : "#a7f3d0"};
+
+  background-color: ${(props) =>
+    props.$service === "unidorm" ? "#eef2ff" : "#ecfdf5"};
+  color: ${(props) => (props.$service === "unidorm" ? "#0046ff" : "#10b981")};
+  border: 1px solid
+    ${(props) => (props.$service === "unidorm" ? "#d0deff" : "#a7f3d0")};
 `;
 
 const LogoImage = styled.img`
@@ -141,15 +149,21 @@ const MenuButton = styled.button<{ $isSidebarOpen: boolean }>`
   background: none;
   border: none;
   cursor: pointer;
-  padding: 5px;
+  padding: 6px;
   margin-right: 10px;
   color: ${COLORS.textDark};
-  
-  // Sidebar가 열려있을 때 PC에서는 숨기고 모바일에서만 노출
-  display: ${props => props.$isSidebarOpen ? "none" : "block"};
-  
+  border-radius: 8px;
+  display: ${(props) => (props.$isSidebarOpen ? "none" : "flex")};
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.2s ease;
+
+  &:hover {
+    background-color: rgba(0, 0, 0, 0.05);
+  }
+
   @media (max-width: 768px) {
-    display: block;
+    display: flex;
   }
 `;
 
@@ -169,7 +183,10 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
 
   useEffect(() => {
     const handleOutsideClick = (e: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(e.target as Node)
+      ) {
         setIsDropdownOpen(false);
       }
     };
@@ -197,39 +214,27 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
   return (
     <HeaderContainer>
       <MenuButton onClick={onToggleSidebar} $isSidebarOpen={isSidebarOpen}>
-        {isSidebarOpen ? (
-          <PanelLeftClose size={24} />
-        ) : (
-          <Menu size={24} />
-        )}
+        {isSidebarOpen ? <PanelLeftClose size={24} /> : <Menu size={24} />}
       </MenuButton>
 
       <HeaderTitleContainer ref={dropdownRef}>
         <HeaderTitle onClick={() => setIsDropdownOpen(!isDropdownOpen)}>
-          <LogoCircle $service={activeService} style={{ width: "24px", height: "24px", borderWidth: "0.5px" }}>
-            {activeService === "intip" ? (
-              INTIP_LOGO_SRC ? (
-                <LogoImage src={INTIP_LOGO_SRC} alt="INTIP" style={{ width: "16px", height: "16px" }} />
-              ) : (
-                <GraduationCap size={12} />
-              )
-            ) : (
-              UNIDORM_LOGO_SRC ? (
-                <LogoImage src={UNIDORM_LOGO_SRC} alt="UNIDorm" style={{ width: "16px", height: "16px" }} />
-              ) : (
-                <Home size={12} />
-              )
-            )}
-          </LogoCircle>
           {getServiceLabel()}
-          <ChevronDown size={16} style={{ opacity: 0.7, transform: isDropdownOpen ? "rotate(180deg)" : "none", transition: "transform 0.2s ease" }} />
+          <ChevronDown
+            size={16}
+            style={{
+              opacity: 0.7,
+              transform: isDropdownOpen ? "rotate(180deg)" : "none",
+              transition: "transform 0.2s ease",
+            }}
+          />
           <BetaBadge>BETA</BetaBadge>
         </HeaderTitle>
 
         {isDropdownOpen && (
           <DropdownMenu>
-            <DropdownItem 
-              $isActive={activeService === "intip"} 
+            <DropdownItem
+              $isActive={activeService === "intip"}
               onClick={() => handleServiceSelect("intip")}
             >
               <LogoCircle $service="intip">
@@ -240,12 +245,14 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
                 )}
               </LogoCircle>
               <div>
-                <ItemTitle $isActive={activeService === "intip"}>챗불이</ItemTitle>
+                <ItemTitle $isActive={activeService === "intip"}>
+                  챗불이
+                </ItemTitle>
                 <ItemDesc>학사 관련 질문을 할 수 있어요</ItemDesc>
               </div>
             </DropdownItem>
-            <DropdownItem 
-              $isActive={activeService === "unidorm"} 
+            <DropdownItem
+              $isActive={activeService === "unidorm"}
               onClick={() => handleServiceSelect("unidorm")}
             >
               <LogoCircle $service="unidorm">
@@ -256,7 +263,9 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
                 )}
               </LogoCircle>
               <div>
-                <ItemTitle $isActive={activeService === "unidorm"}>챗불이 in UNIDorm</ItemTitle>
+                <ItemTitle $isActive={activeService === "unidorm"}>
+                  챗불이 in UNIDorm
+                </ItemTitle>
                 <ItemDesc>기숙사 관련 질문을 할 수 있어요</ItemDesc>
               </div>
             </DropdownItem>

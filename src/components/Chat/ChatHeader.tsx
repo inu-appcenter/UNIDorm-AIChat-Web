@@ -137,14 +137,17 @@ const LogoImage = styled.img`
   object-fit: contain;
 `;
 
-const MenuButton = styled.button`
+const MenuButton = styled.button<{ $isSidebarOpen: boolean }>`
   background: none;
   border: none;
   cursor: pointer;
   padding: 5px;
   margin-right: 10px;
   color: ${COLORS.textDark};
-  display: none;
+  
+  // Sidebar가 열려있을 때 PC에서는 숨기고 모바일에서만 노출
+  display: ${props => props.$isSidebarOpen ? "none" : "block"};
+  
   @media (max-width: 768px) {
     display: block;
   }
@@ -193,7 +196,7 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
 
   return (
     <HeaderContainer>
-      <MenuButton onClick={onToggleSidebar}>
+      <MenuButton onClick={onToggleSidebar} $isSidebarOpen={isSidebarOpen}>
         {isSidebarOpen ? (
           <PanelLeftClose size={24} />
         ) : (

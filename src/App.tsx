@@ -149,6 +149,7 @@ export default function App() {
           onClearHistory={clearHistory}
           onDeleteRoom={deleteRoom}
           onUpdateRoomTitle={updateRoomTitle}
+          onToggleSidebar={handleToggleSidebar}
         />
 
         <MainArea>

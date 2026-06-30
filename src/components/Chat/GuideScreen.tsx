@@ -34,6 +34,10 @@ const WelcomeBubble = styled.div`
   width: 100%;
   max-width: 480px;
   box-sizing: border-box;
+
+  @media (max-width: 768px) {
+    max-width: 80dvw;
+  }
 `;
 
 const WelcomeText = styled.p`
@@ -229,9 +233,9 @@ export const GuideScreen: React.FC<GuideScreenProps> = ({
 
   const getWelcomeText = () => {
     if (activeService === "intip") {
-      return `안녕하세요! 대학 생활을 더 편하게\n만들어줄 챗불이에요!\n\n궁금한 점이 있으시다면 아래 메뉴를\n선택하거나 자유롭게 입력해주세요!`;
+      return `안녕하세요! 대학 생활을 더 편하게 만들어줄 챗불이에요!\n\n궁금한 점이 있으시다면 아래 메뉴를 선택하거나 자유롭게 입력해주세요!`;
     } else {
-      return `안녕하세요! 기숙사 생활을 더 편하게\n만들어줄 챗불이에요!\n\n궁금한 점이 있으시다면 아래 메뉴를\n선택하거나 자유롭게 입력해주세요!`;
+      return `안녕하세요! 기숙사 생활을 더 편하게 만들어줄 챗불이에요!\n\n궁금한 점이 있으시다면 아래 메뉴를 선택하거나 자유롭게 입력해주세요!`;
     }
   };
 
@@ -239,9 +243,7 @@ export const GuideScreen: React.FC<GuideScreenProps> = ({
     <GuideScreenContainer>
       <LogoImage src={ChatbotLogo} alt="챗불이 로고" />
       <WelcomeBubble>
-        <WelcomeText>
-          {getWelcomeText()}
-        </WelcomeText>
+        <WelcomeText>{getWelcomeText()}</WelcomeText>
       </WelcomeBubble>
       <ChipsContainer>
         {randomMessages.map((message, index) => (

@@ -96,10 +96,18 @@ const RoomItem = styled.div<{ $isActive: boolean }>`
 `;
 
 const RoomTitle = styled.span`
-  flex: 1;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  width: 100%;
+`;
+
+const RoomContent = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+  overflow: hidden;
 `;
 
 const RoomInput = styled.input`
@@ -268,11 +276,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
             key={room.id}
             $isActive={room.id === currentRoomId}
             onClick={() => onSelectRoom(room.id)}
+            style={{ alignItems: "flex-start" }}
           >
-            <MessageSquare size={16} style={{ flexShrink: 0 }} />
-            <ServiceBadge $service={room.service || "unidorm"}>
-              {room.service === "intip" ? "학사" : "기숙사"}
-            </ServiceBadge>
+            <MessageSquare size={16} style={{ flexShrink: 0, marginTop: "2px" }} />
 
             {editingId === room.id ? (
               <>
@@ -292,9 +298,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
               </>
             ) : (
               <>
-                <RoomTitle>{room.title}</RoomTitle>
+                <RoomContent>
+                  <RoomTitle>{room.title}</RoomTitle>
+                  <ServiceBadge $service={room.service || "unidorm"} style={{ alignSelf: "flex-start" }}>
+                    {room.service === "intip" ? "학사" : "기숙사"}
+                  </ServiceBadge>
+                </RoomContent>
                 {room.messages.length > 0 && (
-                  <ActionButtons className="room-actions">
+                  <ActionButtons className="room-actions" style={{ marginTop: "2px" }}>
                     <IconButton
                       onClick={(e) => startEdit(e, room.id, room.title)}
                     >

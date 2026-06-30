@@ -151,8 +151,24 @@ export const useChat = () => {
     },
   };
 
+  const getParentOrigin = () => {
+    if (window.self !== window.top && document.referrer) {
+      try {
+        return new URL(document.referrer).origin;
+      } catch (error) {
+        console.error("Failed to parse parent origin from document.referrer", error);
+      }
+    }
+    return null;
+  };
+
   const handleRequiredLogin = () => {
-    window.open(`${WEB_BASE_URL}/login?service=${activeService}`, "_top");
+    const parentOrigin = getParentOrigin();
+    if (parentOrigin) {
+      window.open(`${parentOrigin}/login?service=${activeService}`, "_top");
+    } else {
+      window.open(`${WEB_BASE_URL}/login?service=${activeService}`, "_top");
+    }
   };
 
   const [selectedChatbotType, setSelectedChatbotType] =

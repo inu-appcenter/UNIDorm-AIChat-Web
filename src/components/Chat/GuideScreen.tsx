@@ -31,7 +31,7 @@ const WelcomeBubble = styled.div`
   margin-bottom: 24px;
   margin-left: 0px;
   margin-right: 0px;
-  width: 100%;
+  width: fit-content;
   max-width: 480px;
   box-sizing: border-box;
 

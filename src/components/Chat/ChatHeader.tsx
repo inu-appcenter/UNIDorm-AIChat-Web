@@ -68,7 +68,7 @@ const BetaBadge = styled.span`
 const DropdownMenu = styled.div`
   position: absolute;
   top: calc(100% + 8px);
-  left: 10px;
+  //left: 10px;
   background-color: rgba(255, 255, 255, 0.95);
   backdrop-filter: blur(15px);
   -webkit-backdrop-filter: blur(15px);
@@ -156,17 +156,17 @@ const MenuButton = styled.button<{ $isSidebarOpen: boolean }>`
   justify-content: center;
   overflow: hidden;
   box-sizing: border-box;
-  
+
   // 전환 효과 설정 (사이드바 0.3s 애니메이션과 동기화)
   transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 
   // PC에서 사이드바가 열려있을 때 서서히 크기와 여백을 0으로 만들어 튀는 현상 방지
-  width: ${props => props.$isSidebarOpen ? "0px" : "36px"};
-  height: ${props => props.$isSidebarOpen ? "0px" : "36px"};
-  padding: ${props => props.$isSidebarOpen ? "0px" : "6px"};
-  margin-right: ${props => props.$isSidebarOpen ? "0px" : "10px"};
-  opacity: ${props => props.$isSidebarOpen ? 0 : 1};
-  pointer-events: ${props => props.$isSidebarOpen ? "none" : "auto"};
+  width: ${(props) => (props.$isSidebarOpen ? "0px" : "36px")};
+  height: ${(props) => (props.$isSidebarOpen ? "0px" : "36px")};
+  padding: ${(props) => (props.$isSidebarOpen ? "0px" : "6px")};
+  margin-right: ${(props) => (props.$isSidebarOpen ? "0px" : "10px")};
+  opacity: ${(props) => (props.$isSidebarOpen ? 0 : 1)};
+  pointer-events: ${(props) => (props.$isSidebarOpen ? "none" : "auto")};
 
   &:hover {
     background-color: rgba(0, 0, 0, 0.05);

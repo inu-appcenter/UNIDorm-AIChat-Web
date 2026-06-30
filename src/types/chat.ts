@@ -19,4 +19,5 @@ export interface ChatRoom {
   title: string;
   messages: ChatMessage[];
   chatbotType?: string;
+  service?: "unidorm" | "intip";
 }

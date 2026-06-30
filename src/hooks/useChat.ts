@@ -1,10 +1,10 @@
 import { useState, useRef, useEffect } from "react";
 import type { ChatRoom, ChatMessage } from "../types/chat";
-import { CHAT_URL, LOGIN_URL, type ChatbotType } from "../constants/api";
+import { getApiEndpoints, type ChatbotType } from "../constants/api";
 import { injectButtonPlaceholders } from "../utils/chatButtons";
 
 const STORAGE_KEY = "unidorm_chat_rooms";
-const TOKEN_KEY = "unidorm_ai_access_token";
+const getTokenKey = (service: "unidorm" | "intip") => `${service}_ai_access_token`;
 const AUTO_SCROLL_THRESHOLD_PX = 80;
 const MAX_HISTORY_LENGTH = 2; // 직전 대화 1턴(내 질문 + AI 응답)만 유지
 
@@ -76,15 +76,16 @@ const getChatErrorMessage = (error: unknown) => {
   return "죄송합니다. 오류가 발생했습니다.";
 };
 
-const createEmptyRoom = (): ChatRoom => ({
+const createEmptyRoom = (service: "unidorm" | "intip"): ChatRoom => ({
   id: Date.now().toString(),
   title: "새로운 대화",
   messages: [],
   chatbotType: "special",
+  service,
 });
 
-const ensureGuideRoom = (rooms: ChatRoom[]) => {
-  const emptyRoomIndex = rooms.findIndex((room) => room.messages.length === 0);
+const ensureGuideRoom = (rooms: ChatRoom[], activeService: "unidorm" | "intip") => {
+  const emptyRoomIndex = rooms.findIndex((room) => room.messages.length === 0 && room.service === activeService);
 
   if (emptyRoomIndex !== -1) {
     if (emptyRoomIndex === 0) {
@@ -101,7 +102,7 @@ const ensureGuideRoom = (rooms: ChatRoom[]) => {
     };
   }
 
-  const newRoom = createEmptyRoom();
+  const newRoom = createEmptyRoom(activeService);
   return {
     rooms: [newRoom, ...rooms],
     currentRoomId: newRoom.id,
@@ -116,6 +117,11 @@ export const useChat = () => {
 
   const tokenParam = searchParamsRef.current.get("token");
   const mode = searchParamsRef.current.get("mode") || "prod";
+  const rawService = searchParamsRef.current.get("service") || "unidorm";
+  const activeService: "unidorm" | "intip" = (rawService.toLowerCase() === "intip" ? "intip" : "unidorm");
+
+  const activeTokenKey = getTokenKey(activeService);
+  const activeEndpoints = getApiEndpoints(activeService);
 
   const getFrontendBaseUrl = () => {
     if (
@@ -146,7 +152,7 @@ export const useChat = () => {
   };
 
   const handleRequiredLogin = () => {
-    window.open(`${WEB_BASE_URL}/login`, "_top");
+    window.open(`${WEB_BASE_URL}/login?service=${activeService}`, "_top");
   };
 
   const [selectedChatbotType, setSelectedChatbotType] =
@@ -174,24 +180,32 @@ export const useChat = () => {
 
     if (saved) {
       try {
-        initialRooms = JSON.parse(saved);
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) {
+          initialRooms = parsed.map((room: any) => ({
+            ...room,
+            service: room.service || "unidorm", // 기존 방 마이그레이션
+          }));
+        }
       } catch (error) {
         console.error("Failed to parse rooms from localStorage", error);
       }
     }
 
-    return ensureGuideRoom(initialRooms ?? [createEmptyRoom()]).rooms;
+    return ensureGuideRoom(initialRooms ?? [createEmptyRoom(activeService)], activeService).rooms;
   });
 
   const [currentRoomId, setCurrentRoomId] = useState<string>(() => {
     const guideRoom =
-      rooms.find((room) => room.messages.length === 0) ?? rooms[0];
+      rooms.find((room) => room.messages.length === 0 && room.service === activeService) ??
+      rooms.find((room) => room.service === activeService) ??
+      rooms[0];
     return guideRoom.id;
   });
 
   const [isLoading, setIsLoading] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(
-    !!localStorage.getItem(TOKEN_KEY),
+    !!localStorage.getItem(activeTokenKey),
   );
   const [loginStatus, setLoginStatus] = useState<
     "idle" | "loading" | "success"
@@ -214,7 +228,7 @@ export const useChat = () => {
         setLoginStatus("loading");
 
         try {
-          const response = await fetch(LOGIN_URL, {
+          const response = await fetch(activeEndpoints.login, {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
@@ -235,7 +249,7 @@ export const useChat = () => {
             throw new Error("No token found in response");
           }
 
-          localStorage.setItem(TOKEN_KEY, aiToken);
+          localStorage.setItem(activeTokenKey, aiToken);
           setIsAuthenticated(true);
           setLoginStatus("success");
 
@@ -243,18 +257,21 @@ export const useChat = () => {
             setLoginStatus("idle");
           }, 1000);
 
-          const newUrl = window.location.pathname;
-          window.history.replaceState({}, "", newUrl);
+          // URL에서 token 파라미터만 제거하고 나머지 파라미터(mode, service 등)는 보존
+          const newParams = new URLSearchParams(window.location.search);
+          newParams.delete("token");
+          const newUrlStr = window.location.pathname + (newParams.toString() ? `?${newParams.toString()}` : "");
+          window.history.replaceState({}, "", newUrlStr);
           console.log("AI Server Token saved and URL cleaned");
         } catch (error) {
           console.error("Token exchange failed", error);
           setIsAuthenticated(false);
           setLoginStatus("idle");
-          localStorage.removeItem(TOKEN_KEY);
+          localStorage.removeItem(activeTokenKey);
 
           if (
             window.confirm(
-              "유니돔 로그인이 필요합니다. 로그인 페이지로 이동할까요?",
+              `${activeService === "intip" ? "인팁" : "유니돔"} 로그인이 필요합니다. 로그인 페이지로 이동할까요?`,
             )
           ) {
             handleRequiredLogin();
@@ -264,10 +281,10 @@ export const useChat = () => {
 
       void exchangeToken();
     } else {
-      const savedToken = localStorage.getItem(TOKEN_KEY);
+      const savedToken = localStorage.getItem(activeTokenKey);
       setIsAuthenticated(!!savedToken);
     }
-  }, [mode, tokenParam]);
+  }, [mode, tokenParam, activeService]);
 
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(rooms));
@@ -370,13 +387,13 @@ export const useChat = () => {
   }, [currentRoom.messages, isLoading]);
 
   const createNewRoom = () => {
-    const emptyRoom = rooms.find((room) => room.messages.length === 0);
+    const emptyRoom = rooms.find((room) => room.messages.length === 0 && room.service === activeService);
     if (emptyRoom) {
       setCurrentRoomId(emptyRoom.id);
       return;
     }
 
-    const newRoom = createEmptyRoom();
+    const newRoom = createEmptyRoom(activeService);
     setRooms((prev) => [newRoom, ...prev]);
     setCurrentRoomId(newRoom.id);
   };
@@ -385,13 +402,14 @@ export const useChat = () => {
     const updatedRooms = rooms.filter((room) => room.id !== id);
 
     if (updatedRooms.length === 0) {
-      const newRoom = createEmptyRoom();
+      const newRoom = createEmptyRoom(activeService);
       setRooms([newRoom]);
       setCurrentRoomId(newRoom.id);
     } else {
       setRooms(updatedRooms);
       if (currentRoomId === id) {
-        setCurrentRoomId(updatedRooms[0].id);
+        const sameServiceRoom = updatedRooms.find((room) => room.service === activeService);
+        setCurrentRoomId(sameServiceRoom ? sameServiceRoom.id : updatedRooms[0].id);
       }
     }
   };
@@ -404,7 +422,7 @@ export const useChat = () => {
 
   const clearHistory = () => {
     if (window.confirm("모든 대화 내역을 삭제하시겠습니까?")) {
-      const newRoom = createEmptyRoom();
+      const newRoom = createEmptyRoom(activeService);
       setRooms([newRoom]);
       setCurrentRoomId(newRoom.id);
     }
@@ -519,7 +537,11 @@ export const useChat = () => {
         // ... (classify logic)
       }
 
-      const token = localStorage.getItem(TOKEN_KEY);
+      const roomService = currentRoom.service || "unidorm";
+      const roomTokenKey = getTokenKey(roomService);
+      const roomEndpoints = getApiEndpoints(roomService);
+
+      const token = localStorage.getItem(roomTokenKey);
       if (!token) {
         setIsAuthenticated(false);
         handleRequiredLogin();
@@ -553,7 +575,7 @@ export const useChat = () => {
 
       for (let attempt = 0; attempt < 2; attempt += 1) {
         try {
-          const response = await fetch(CHAT_URL, {
+          const response = await fetch(roomEndpoints.chat, {
             method: "POST",
             cache: "no-cache",
             headers: {
@@ -565,7 +587,7 @@ export const useChat = () => {
           });
 
           if (response.status === 401) {
-            localStorage.removeItem(TOKEN_KEY);
+            localStorage.removeItem(roomTokenKey);
             setIsAuthenticated(false);
             handleRequiredLogin();
             return;
@@ -702,6 +724,7 @@ export const useChat = () => {
   };
 
   return {
+    activeService,
     rooms,
     currentRoom,
     currentRoomId,

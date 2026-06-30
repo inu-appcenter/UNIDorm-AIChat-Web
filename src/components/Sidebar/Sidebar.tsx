@@ -142,6 +142,19 @@ const IconButton = styled.button`
   }
 `;
 
+const ServiceBadge = styled.span<{ $service: "unidorm" | "intip" }>`
+  font-size: 10px;
+  padding: 1px 5px;
+  border-radius: 6px;
+  font-weight: 600;
+  white-space: nowrap;
+  flex-shrink: 0;
+  
+  color: ${props => props.$service === "unidorm" ? "#0046ff" : "#10b981"};
+  background-color: ${props => props.$service === "unidorm" ? "#eef2ff" : "#ecfdf5"};
+  border: 1px solid ${props => props.$service === "unidorm" ? "#d0deff" : "#a7f3d0"};
+`;
+
 const SidebarFooter = styled.div`
   margin-top: 20px;
   padding-top: 15px;
@@ -256,7 +269,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
             $isActive={room.id === currentRoomId}
             onClick={() => onSelectRoom(room.id)}
           >
-            <MessageSquare size={16} />
+            <MessageSquare size={16} style={{ flexShrink: 0 }} />
+            <ServiceBadge $service={room.service || "unidorm"}>
+              {room.service === "intip" ? "학사" : "기숙사"}
+            </ServiceBadge>
 
             {editingId === room.id ? (
               <>

@@ -4,6 +4,15 @@ export const CLASSIFY_URL = `${API_BASE_URL}/unidorm/classify`;
 export const CHAT_URL = `${API_BASE_URL}/unidorm/chat`;
 export const LOGIN_URL = `${API_BASE_URL}/unidorm/auth/login`;
 
+export const getApiEndpoints = (service: "unidorm" | "intip") => {
+  const prefix = service === "intip" ? "/inuchat" : "/unidorm";
+  return {
+    login: `${API_BASE_URL}${prefix}/auth/login`,
+    chat: `${API_BASE_URL}${prefix}/chat`,
+    classify: `${API_BASE_URL}${prefix}/classify`,
+  };
+};
+
 export type ChatbotType = "special" | "general" | "classify";
 
 export const CHATBOT_LABELS: Record<ChatbotType, string> = {

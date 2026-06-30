@@ -18,7 +18,6 @@ const LogoImage = styled.img`
   width: 42px;
   height: auto;
   object-fit: contain;
-  //margin-bottom: 12px;
   margin-left: 0px;
   align-self: flex-start;
   pointer-events: none;
@@ -93,10 +92,11 @@ interface GuideScreenProps {
   onSelectGuide: (message: string) => void;
   isAuthenticated: boolean;
   onRequiredLogin: () => void;
+  activeService: "unidorm" | "intip";
 }
 
-// 전체 질문 리스트
-const ALL_MESSAGES = [
+// 기숙사 전체 질문 리스트
+const DORM_MESSAGES = [
   "와이파이 공유기 위치",
   "벌점 상점",
   "식당 운영시간",
@@ -148,42 +148,70 @@ const ALL_MESSAGES = [
   "스터디룸 예약 어떻게 해?",
 ];
 
+// 학사 전체 질문 리스트
+const INTIP_MESSAGES = [
+  "장학금 신청 방법",
+  "수강신청 일정",
+  "성적 확인 및 이의신청",
+  "휴학 및 복학 신청",
+  "졸업 자격 요건",
+  "증명서 발급 방법",
+  "도서관 이용 시간",
+  "계절학기 신청 기간",
+  "등록금 납부 및 분할납부",
+  "학사일정 확인",
+  "전과 및 다중전공 신청",
+  "학생증 발급 방법",
+  "예비군 대원 신고",
+];
+
 export const GuideScreen: React.FC<GuideScreenProps> = ({
   onSelectGuide,
   isAuthenticated,
   onRequiredLogin,
+  activeService,
 }) => {
-  // 랜덤 5개 질문 추출 (메모이제이션)
-  // 단, 첫 로드 시 사용자가 피그마와 동일한 경험을 할 수 있도록
-  // 피그마에 기재된 5가지 질문을 기본 목록으로 섞어 추출하되, Figma 질문 5개 중 일부 또는 전부가 높은 우선순위로 나올 수 있게 조정
   const randomMessages = useMemo(() => {
-    // Figma 질문 5개
-    const figmaQuestions = [
-      "와이파이 공유기 위치",
-      "벌점 상점",
-      "식당 운영시간",
-      "룸메 신청",
-      "기숙사비 미지출 시",
-    ];
-
-    // 나머지 질문들 필터링
-    const remainingQuestions = ALL_MESSAGES.filter(
-      (msg) => !figmaQuestions.includes(msg),
-    );
-
-    // Figma 질문 5개와 나머지 질문 중 랜덤 3개를 섞어서 5개 만들기
-    // 혹은 Figma 질문 5개를 우선 보여주되 매번 신선하게 하기 위해 두 버전을 적절히 섞을 수 있음.
-    // 여기서는 기본적으로 피그마 질문 5개를 1순위로 포함하고 섞어 렌더링하도록 디자인 충실도를 극대화
-    const mixed = [...figmaQuestions];
-    if (mixed.length < 5) {
-      const extra = [...remainingQuestions]
-        .sort(() => Math.random() - 0.5)
-        .slice(0, 5 - mixed.length);
-      mixed.push(...extra);
+    if (activeService === "intip") {
+      const figmaQuestions = [
+        "장학금 신청 방법",
+        "수강신청 일정",
+        "성적 확인 및 이의신청",
+        "휴학 및 복학 신청",
+        "졸업 자격 요건",
+      ];
+      const remainingQuestions = INTIP_MESSAGES.filter(
+        (msg) => !figmaQuestions.includes(msg),
+      );
+      const mixed = [...figmaQuestions];
+      if (mixed.length < 5) {
+        const extra = [...remainingQuestions]
+          .sort(() => Math.random() - 0.5)
+          .slice(0, 5 - mixed.length);
+        mixed.push(...extra);
+      }
+      return mixed.sort(() => Math.random() - 0.5).slice(0, 5);
+    } else {
+      const figmaQuestions = [
+        "와이파이 공유기 위치",
+        "벌점 상점",
+        "식당 운영시간",
+        "룸메 신청",
+        "기숙사비 미지출 시",
+      ];
+      const remainingQuestions = DORM_MESSAGES.filter(
+        (msg) => !figmaQuestions.includes(msg),
+      );
+      const mixed = [...figmaQuestions];
+      if (mixed.length < 5) {
+        const extra = [...remainingQuestions]
+          .sort(() => Math.random() - 0.5)
+          .slice(0, 5 - mixed.length);
+        mixed.push(...extra);
+      }
+      return mixed.sort(() => Math.random() - 0.5).slice(0, 5);
     }
-
-    return mixed.sort(() => Math.random() - 0.5).slice(0, 5);
-  }, []);
+  }, [activeService]);
 
   const handleClick = (message: string) => {
     if (!isAuthenticated) {
@@ -199,15 +227,20 @@ export const GuideScreen: React.FC<GuideScreenProps> = ({
     onSelectGuide(message);
   };
 
+  const getWelcomeText = () => {
+    if (activeService === "intip") {
+      return `안녕하세요! 대학 생활을 더 편하게\n만들어줄 챗불이에요!\n\n궁금한 점이 있으시다면 아래 메뉴를\n선택하거나 자유롭게 입력해주세요!`;
+    } else {
+      return `안녕하세요! 기숙사 생활을 더 편하게\n만들어줄 챗불이에요!\n\n궁금한 점이 있으시다면 아래 메뉴를\n선택하거나 자유롭게 입력해주세요!`;
+    }
+  };
+
   return (
     <GuideScreenContainer>
       <LogoImage src={ChatbotLogo} alt="챗불이 로고" />
       <WelcomeBubble>
         <WelcomeText>
-          안녕하세요! 기숙사 생활을 더 편하게{"\n"}
-          만들어줄 챗불이에요!{"\n\n"}
-          궁금한 점이 있으시다면 아래 메뉴를{"\n"}
-          선택하거나 자유롭게 입력해주세요!
+          {getWelcomeText()}
         </WelcomeText>
       </WelcomeBubble>
       <ChipsContainer>

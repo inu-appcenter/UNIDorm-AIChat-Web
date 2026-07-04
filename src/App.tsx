@@ -18,50 +18,6 @@ import { GuideScreen } from "./components/Chat/GuideScreen";
 import { COLORS } from "./constants/colors";
 import ellipse2 from "./assets/ellipse2.svg";
 
-const Disclaimer = styled.div`
-  font-size: 11px;
-  color: ${COLORS.textMuted};
-  //text-align: center;
-  padding: 10px 0px;
-  opacity: 0.7;
-  line-height: 1.4;
-  width: 100%;
-  max-width: 800px;
-  margin-top: -12px;
-  margin-bottom: 24px;
-  word-break: keep-all;
-  overflow-wrap: anywhere;
-`;
-
-const ScrollSpacer = styled.div`
-  height: 0px;
-  width: 100%;
-  pointer-events: none;
-  flex-shrink: 0;
-`;
-
-const DateSeparatorContainer = styled.div`
-  display: flex;
-  align-items: center;
-  width: 100%;
-  max-width: 800px;
-  margin: 12px 0;
-`;
-
-const DateLine = styled.div`
-  flex: 1;
-  height: 1px;
-  background-color: #eeeeee;
-`;
-
-const DateText = styled.div`
-  padding: 0 16px;
-  font-size: 12px;
-  font-weight: 600;
-  color: #999999;
-  background-color: transparent;
-`;
-
 export default function App() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(window.innerWidth > 768);
   const {
@@ -223,3 +179,47 @@ export default function App() {
     </>
   );
 }
+
+const Disclaimer = styled.div`
+  font-size: 11px;
+  color: ${COLORS.textMuted};
+  //text-align: center;
+  padding: 10px 0px;
+  opacity: 0.7;
+  line-height: 1.4;
+  width: 100%;
+  max-width: 800px;
+  margin-top: -12px;
+  margin-bottom: 24px;
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+`;
+
+const ScrollSpacer = styled.div`
+  height: 0px;
+  width: 100%;
+  pointer-events: none;
+  flex-shrink: 0;
+`;
+
+const DateSeparatorContainer = styled.div`
+  display: flex;
+  align-items: center;
+  width: 100%;
+  max-width: 800px;
+  margin: 12px 0;
+`;
+
+const DateLine = styled.div`
+  flex: 1;
+  height: 1px;
+  background-color: #eeeeee;
+`;
+
+const DateText = styled.div`
+  padding: 0 16px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #999999;
+  background-color: transparent;
+`;

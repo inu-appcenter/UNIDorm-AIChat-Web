@@ -128,20 +128,11 @@ export const useChat = () => {
     searchParamsRef.current = new URLSearchParams(window.location.search);
   }
 
-  const mode = searchParamsRef.current.get("mode") || "prod";
-  const rawService = searchParamsRef.current.get("service") || "unidorm";
-  const activeService: "unidorm" | "intip" = (rawService.toLowerCase() === "intip" ? "intip" : "unidorm");
+  const rawService = searchParamsRef.current.get("service") || "intip";
+  const activeService: "unidorm" | "intip" = (rawService.toLowerCase() === "unidorm" ? "unidorm" : "intip");
 
   const getFrontendBaseUrl = () => {
-    if (
-      window.location.hostname === "localhost" ||
-      window.location.hostname === "127.0.0.1"
-    ) {
-      return window.location.origin;
-    }
-
-    if (mode === "dev") return "https://unidorm-test.pages.dev";
-    return "https://unidorm.inuappcenter.kr";
+    return window.location.origin;
   };
 
   const WEB_BASE_URL = getFrontendBaseUrl();
@@ -493,7 +484,7 @@ export const useChat = () => {
 
       for (let attempt = 0; attempt < 2; attempt += 1) {
         try {
-          const response = await fetch(getChatUrl(activeService, mode), {
+          const response = await fetch(getChatUrl(activeService), {
             method: "POST",
             cache: "no-cache",
             headers: {

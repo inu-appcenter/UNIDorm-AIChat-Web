@@ -1,16 +1,12 @@
-export const getChatUrl = (service: "unidorm" | "intip", mode: string = "prod") => {
+export const getChatUrl = (service: "unidorm" | "intip") => {
   const prefix = service === "intip" ? "/inuchat" : "/unidorm";
-  const prodUrl = import.meta.env.VITE_API_BASE_URL || "https://ai-server.inuappcenter.kr";
-  const devUrl = import.meta.env.VITE_API_BASE_URL_DEV || "https://ai-server-dev.inuappcenter.kr";
-  const baseUrl = mode === "dev" ? devUrl : prodUrl;
+  const baseUrl = import.meta.env.VITE_API_BASE_URL || "https://ai-server.inuappcenter.kr";
   return `${baseUrl}${prefix}/chat`;
 };
 
-export const getClassifyUrl = (service: "unidorm" | "intip", mode: string = "prod") => {
+export const getClassifyUrl = (service: "unidorm" | "intip") => {
   const prefix = service === "intip" ? "/inuchat" : "/unidorm";
-  const prodUrl = import.meta.env.VITE_API_BASE_URL || "https://ai-server.inuappcenter.kr";
-  const devUrl = import.meta.env.VITE_API_BASE_URL_DEV || "https://ai-server-dev.inuappcenter.kr";
-  const baseUrl = mode === "dev" ? devUrl : prodUrl;
+  const baseUrl = import.meta.env.VITE_API_BASE_URL || "https://ai-server.inuappcenter.kr";
   return `${baseUrl}${prefix}/classify`;
 };
 

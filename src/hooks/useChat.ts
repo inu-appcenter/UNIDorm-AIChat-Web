@@ -1,12 +1,25 @@
 import { useState, useRef, useEffect } from "react";
 import type { ChatRoom, ChatMessage } from "../types/chat";
-import { getApiEndpoints, type ChatbotType } from "../constants/api";
+import { getChatUrl, type ChatbotType } from "../constants/api";
 import { injectButtonPlaceholders } from "../utils/chatButtons";
 
 const STORAGE_KEY = "unidorm_chat_rooms";
-const getTokenKey = (service: "unidorm" | "intip") => `${service}_ai_access_token`;
+const GUEST_DEVICE_ID_KEY = "unidorm_chat_guest_device_id";
 const AUTO_SCROLL_THRESHOLD_PX = 80;
 const MAX_HISTORY_LENGTH = 2; // 직전 대화 1턴(내 질문 + AI 응답)만 유지
+
+const getOrCreateGuestDeviceId = (): string => {
+  let deviceId = localStorage.getItem(GUEST_DEVICE_ID_KEY);
+  if (!deviceId) {
+    deviceId = "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
+      const r = (Math.random() * 16) | 0;
+      const v = c === "x" ? r : (r & 0x3) | 0x8;
+      return v.toString(16);
+    });
+    localStorage.setItem(GUEST_DEVICE_ID_KEY, deviceId);
+  }
+  return deviceId;
+};
 
 type ChatButton = {
   label: string;
@@ -115,13 +128,9 @@ export const useChat = () => {
     searchParamsRef.current = new URLSearchParams(window.location.search);
   }
 
-  const tokenParam = searchParamsRef.current.get("token");
   const mode = searchParamsRef.current.get("mode") || "prod";
   const rawService = searchParamsRef.current.get("service") || "unidorm";
   const activeService: "unidorm" | "intip" = (rawService.toLowerCase() === "intip" ? "intip" : "unidorm");
-
-  const activeTokenKey = getTokenKey(activeService);
-  const activeEndpoints = getApiEndpoints(activeService, mode);
 
   const getFrontendBaseUrl = () => {
     if (
@@ -151,44 +160,12 @@ export const useChat = () => {
     },
   };
 
-  const getParentOrigin = () => {
-    if (window.self !== window.top && document.referrer) {
-      try {
-        return new URL(document.referrer).origin;
-      } catch (error) {
-        console.error("Failed to parse parent origin from document.referrer", error);
-      }
-    }
-    return null;
-  };
-
   const handleRequiredLogin = () => {
-    const parentOrigin = getParentOrigin();
-    if (parentOrigin) {
-      window.open(`${parentOrigin}/login?service=${activeService}`, "_top");
-    } else {
-      window.open(`${WEB_BASE_URL}/login?service=${activeService}`, "_top");
-    }
+    // 비인증으로 변경되어 더 이상 로그인이 필요하지 않습니다.
   };
 
   const [selectedChatbotType, setSelectedChatbotType] =
     useState<ChatbotType>("special");
-  const hasAlertedRef = useRef(false);
-
-  useEffect(() => {
-    const isLocal =
-      window.location.hostname === "localhost" ||
-      window.location.hostname === "127.0.0.1";
-
-    if (
-      isLocal &&
-      (!tokenParam || !searchParamsRef.current?.get("mode")) &&
-      !hasAlertedRef.current
-    ) {
-      window.alert("url파라미터로 token과 mode를 전달해주세요.");
-      hasAlertedRef.current = true;
-    }
-  }, [tokenParam]);
 
   const [rooms, setRooms] = useState<ChatRoom[]>(() => {
     const saved = localStorage.getItem(STORAGE_KEY);
@@ -220,16 +197,13 @@ export const useChat = () => {
   });
 
   const [isLoading, setIsLoading] = useState(false);
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(
-    !!localStorage.getItem(activeTokenKey),
-  );
-  const [loginStatus, setLoginStatus] = useState<
+  const [isAuthenticated] = useState<boolean>(true);
+  const [loginStatus] = useState<
     "idle" | "loading" | "success"
   >("idle");
 
   const chatAreaRef = useRef<HTMLDivElement>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
-  const isExchangingRef = useRef<boolean>(false);
   const isAutoScrollEnabledRef = useRef(true);
   const shouldScrollUserMessageRef = useRef<boolean>(false);
 
@@ -237,70 +211,8 @@ export const useChat = () => {
     rooms.find((room) => room.id === currentRoomId) || rooms[0];
 
   useEffect(() => {
-    if (tokenParam && !isExchangingRef.current) {
-      isExchangingRef.current = true;
-
-      const exchangeToken = async () => {
-        setLoginStatus("loading");
-
-        try {
-          const response = await fetch(activeEndpoints.login, {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({ accessToken: tokenParam, mode }),
-          });
-
-          if (!response.ok) {
-            throw new Error("Failed to exchange token");
-          }
-
-          const data = await response.json();
-          const aiToken =
-            data.accessToken ||
-            (typeof data === "string" ? data : data.token || data.access_token);
-
-          if (!aiToken) {
-            throw new Error("No token found in response");
-          }
-
-          localStorage.setItem(activeTokenKey, aiToken);
-          setIsAuthenticated(true);
-          setLoginStatus("success");
-
-          window.setTimeout(() => {
-            setLoginStatus("idle");
-          }, 1000);
-
-          // URL에서 token 파라미터만 제거하고 나머지 파라미터(mode, service 등)는 보존
-          const newParams = new URLSearchParams(window.location.search);
-          newParams.delete("token");
-          const newUrlStr = window.location.pathname + (newParams.toString() ? `?${newParams.toString()}` : "");
-          window.history.replaceState({}, "", newUrlStr);
-          console.log("AI Server Token saved and URL cleaned");
-        } catch (error) {
-          console.error("Token exchange failed", error);
-          setIsAuthenticated(false);
-          setLoginStatus("idle");
-          localStorage.removeItem(activeTokenKey);
-
-          if (
-            window.confirm(
-              `${activeService === "intip" ? "인팁" : "유니돔"} 로그인이 필요합니다. 로그인 페이지로 이동할까요?`,
-            )
-          ) {
-            handleRequiredLogin();
-          }
-        }
-      };
-
-      void exchangeToken();
-    } else {
-      const savedToken = localStorage.getItem(activeTokenKey);
-      setIsAuthenticated(!!savedToken);
-    }
-  }, [mode, tokenParam, activeService]);
+    getOrCreateGuestDeviceId();
+  }, []);
 
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(rooms));
@@ -553,16 +465,6 @@ export const useChat = () => {
         // ... (classify logic)
       }
 
-      const roomService = currentRoom.service || "unidorm";
-      const roomTokenKey = getTokenKey(roomService);
-      const roomEndpoints = getApiEndpoints(roomService, mode);
-
-      const token = localStorage.getItem(roomTokenKey);
-      if (!token) {
-        setIsAuthenticated(false);
-        handleRequiredLogin();
-        return;
-      }
 
       let baseMessages = [...currentRoom.messages];
 
@@ -591,23 +493,17 @@ export const useChat = () => {
 
       for (let attempt = 0; attempt < 2; attempt += 1) {
         try {
-          const response = await fetch(roomEndpoints.chat, {
+          const response = await fetch(getChatUrl(activeService, mode), {
             method: "POST",
             cache: "no-cache",
             headers: {
               "Content-Type": "application/json",
-              Authorization: `Bearer ${token}`,
+              "X-Guest-Device-Id": getOrCreateGuestDeviceId(),
             },
             body: requestBody,
             signal: abortControllerRef.current.signal,
           });
 
-          if (response.status === 401) {
-            localStorage.removeItem(roomTokenKey);
-            setIsAuthenticated(false);
-            handleRequiredLogin();
-            return;
-          }
 
           if (!response.ok) {
             const raw = await response.text().catch(() => "");

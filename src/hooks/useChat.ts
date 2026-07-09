@@ -493,7 +493,7 @@ export const useChat = () => {
 
       for (let attempt = 0; attempt < 2; attempt += 1) {
         try {
-          const response = await fetch(getChatUrl(activeService), {
+          const response = await fetch(getChatUrl(activeService, mode), {
             method: "POST",
             cache: "no-cache",
             headers: {

@@ -198,7 +198,7 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const [showTooltip, setShowTooltip] = useState(
-    () => !localStorage.getItem("has_closed_service_tooltip")
+    () => !localStorage.getItem("has_closed_service_tooltip"),
   );
 
   const handleCloseTooltip = () => {
@@ -226,7 +226,7 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
       if (service === "unidorm") {
         window.alert("해당 서비스는 유니돔 앱에서 사용할 수 있어요.");
       } else {
-        window.alert("해당 서비스는 인팁 앱에서 사용할 수 있어요.");
+        window.alert("해당 서비스는 INTIP 앱에서 오픈 예정이에요.");
       }
     }
     setIsDropdownOpen(false);
@@ -281,7 +281,7 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
               </LogoCircle>
               <div>
                 <ItemTitle $isActive={activeService === "intip"}>
-                  챗불이
+                  챗불이(준비 중)
                 </ItemTitle>
                 <ItemDesc>학사 관련 질문을 할 수 있어요</ItemDesc>
               </div>

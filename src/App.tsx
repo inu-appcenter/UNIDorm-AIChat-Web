@@ -21,6 +21,7 @@ import ellipse2 from "./assets/ellipse2.svg";
 export default function App() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(window.innerWidth > 768);
   const {
+    activeService,
     rooms,
     currentRoom,
     currentRoomId,
@@ -104,6 +105,7 @@ export default function App() {
           onClearHistory={clearHistory}
           onDeleteRoom={deleteRoom}
           onUpdateRoomTitle={updateRoomTitle}
+          onToggleSidebar={handleToggleSidebar}
         />
 
         <MainArea>
@@ -112,6 +114,7 @@ export default function App() {
           <ChatHeader
             isSidebarOpen={isSidebarOpen}
             onToggleSidebar={handleToggleSidebar}
+            activeService={activeService}
           />
 
           <ChatArea ref={chatAreaRef}>
@@ -120,6 +123,7 @@ export default function App() {
                 onSelectGuide={(msg) => sendMessage(msg)}
                 isAuthenticated={isAuthenticated}
                 onRequiredLogin={handleRequiredLogin}
+                activeService={currentRoom.service || activeService}
               />
             ) : (
               <>

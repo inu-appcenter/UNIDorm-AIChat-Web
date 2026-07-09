@@ -1,8 +1,14 @@
-export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
-// 기존의 8002 포트 대신 API_BASE_URL의 /classify 엔드포인트를 사용합니다.
-export const CLASSIFY_URL = `${API_BASE_URL}/unidorm/classify`;
-export const CHAT_URL = `${API_BASE_URL}/unidorm/chat`;
-export const LOGIN_URL = `${API_BASE_URL}/unidorm/auth/login`;
+export const getChatUrl = (service: "unidorm" | "intip") => {
+  const prefix = service === "intip" ? "/inuchat" : "/unidorm";
+  const baseUrl = import.meta.env.VITE_API_BASE_URL || "https://ai-server.inuappcenter.kr";
+  return `${baseUrl}${prefix}/chat`;
+};
+
+export const getClassifyUrl = (service: "unidorm" | "intip") => {
+  const prefix = service === "intip" ? "/inuchat" : "/unidorm";
+  const baseUrl = import.meta.env.VITE_API_BASE_URL || "https://ai-server.inuappcenter.kr";
+  return `${baseUrl}${prefix}/classify`;
+};
 
 export type ChatbotType = "special" | "general" | "classify";
 

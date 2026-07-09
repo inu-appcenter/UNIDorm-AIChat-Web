@@ -1,12 +1,25 @@
 import { useState, useRef, useEffect } from "react";
 import type { ChatRoom, ChatMessage } from "../types/chat";
-import { CHAT_URL, LOGIN_URL, type ChatbotType } from "../constants/api";
+import { getChatUrl, type ChatbotType } from "../constants/api";
 import { injectButtonPlaceholders } from "../utils/chatButtons";
 
 const STORAGE_KEY = "unidorm_chat_rooms";
-const TOKEN_KEY = "unidorm_ai_access_token";
+const GUEST_DEVICE_ID_KEY = "unidorm_chat_guest_device_id";
 const AUTO_SCROLL_THRESHOLD_PX = 80;
 const MAX_HISTORY_LENGTH = 2; // 직전 대화 1턴(내 질문 + AI 응답)만 유지
+
+const getOrCreateGuestDeviceId = (): string => {
+  let deviceId = localStorage.getItem(GUEST_DEVICE_ID_KEY);
+  if (!deviceId) {
+    deviceId = "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
+      const r = (Math.random() * 16) | 0;
+      const v = c === "x" ? r : (r & 0x3) | 0x8;
+      return v.toString(16);
+    });
+    localStorage.setItem(GUEST_DEVICE_ID_KEY, deviceId);
+  }
+  return deviceId;
+};
 
 type ChatButton = {
   label: string;
@@ -76,15 +89,16 @@ const getChatErrorMessage = (error: unknown) => {
   return "죄송합니다. 오류가 발생했습니다.";
 };
 
-const createEmptyRoom = (): ChatRoom => ({
+const createEmptyRoom = (service: "unidorm" | "intip"): ChatRoom => ({
   id: Date.now().toString(),
   title: "새로운 대화",
   messages: [],
   chatbotType: "special",
+  service,
 });
 
-const ensureGuideRoom = (rooms: ChatRoom[]) => {
-  const emptyRoomIndex = rooms.findIndex((room) => room.messages.length === 0);
+const ensureGuideRoom = (rooms: ChatRoom[], activeService: "unidorm" | "intip") => {
+  const emptyRoomIndex = rooms.findIndex((room) => room.messages.length === 0 && room.service === activeService);
 
   if (emptyRoomIndex !== -1) {
     if (emptyRoomIndex === 0) {
@@ -101,7 +115,7 @@ const ensureGuideRoom = (rooms: ChatRoom[]) => {
     };
   }
 
-  const newRoom = createEmptyRoom();
+  const newRoom = createEmptyRoom(activeService);
   return {
     rooms: [newRoom, ...rooms],
     currentRoomId: newRoom.id,
@@ -114,19 +128,11 @@ export const useChat = () => {
     searchParamsRef.current = new URLSearchParams(window.location.search);
   }
 
-  const tokenParam = searchParamsRef.current.get("token");
-  const mode = searchParamsRef.current.get("mode") || "prod";
+  const rawService = searchParamsRef.current.get("service") || "intip";
+  const activeService: "unidorm" | "intip" = (rawService.toLowerCase() === "unidorm" ? "unidorm" : "intip");
 
   const getFrontendBaseUrl = () => {
-    if (
-      window.location.hostname === "localhost" ||
-      window.location.hostname === "127.0.0.1"
-    ) {
-      return window.location.origin;
-    }
-
-    if (mode === "dev") return "https://unidorm-test.pages.dev";
-    return "https://unidorm.inuappcenter.kr";
+    return window.location.origin;
   };
 
   const WEB_BASE_URL = getFrontendBaseUrl();
@@ -146,27 +152,11 @@ export const useChat = () => {
   };
 
   const handleRequiredLogin = () => {
-    window.open(`${WEB_BASE_URL}/login`, "_top");
+    // 비인증으로 변경되어 더 이상 로그인이 필요하지 않습니다.
   };
 
   const [selectedChatbotType, setSelectedChatbotType] =
     useState<ChatbotType>("special");
-  const hasAlertedRef = useRef(false);
-
-  useEffect(() => {
-    const isLocal =
-      window.location.hostname === "localhost" ||
-      window.location.hostname === "127.0.0.1";
-
-    if (
-      isLocal &&
-      (!tokenParam || !searchParamsRef.current?.get("mode")) &&
-      !hasAlertedRef.current
-    ) {
-      window.alert("url파라미터로 token과 mode를 전달해주세요.");
-      hasAlertedRef.current = true;
-    }
-  }, [tokenParam]);
 
   const [rooms, setRooms] = useState<ChatRoom[]>(() => {
     const saved = localStorage.getItem(STORAGE_KEY);
@@ -174,32 +164,37 @@ export const useChat = () => {
 
     if (saved) {
       try {
-        initialRooms = JSON.parse(saved);
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) {
+          initialRooms = parsed.map((room: any) => ({
+            ...room,
+            service: room.service || "unidorm", // 기존 방 마이그레이션
+          }));
+        }
       } catch (error) {
         console.error("Failed to parse rooms from localStorage", error);
       }
     }
 
-    return ensureGuideRoom(initialRooms ?? [createEmptyRoom()]).rooms;
+    return ensureGuideRoom(initialRooms ?? [createEmptyRoom(activeService)], activeService).rooms;
   });
 
   const [currentRoomId, setCurrentRoomId] = useState<string>(() => {
     const guideRoom =
-      rooms.find((room) => room.messages.length === 0) ?? rooms[0];
+      rooms.find((room) => room.messages.length === 0 && room.service === activeService) ??
+      rooms.find((room) => room.service === activeService) ??
+      rooms[0];
     return guideRoom.id;
   });
 
   const [isLoading, setIsLoading] = useState(false);
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(
-    !!localStorage.getItem(TOKEN_KEY),
-  );
-  const [loginStatus, setLoginStatus] = useState<
+  const [isAuthenticated] = useState<boolean>(true);
+  const [loginStatus] = useState<
     "idle" | "loading" | "success"
   >("idle");
 
   const chatAreaRef = useRef<HTMLDivElement>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
-  const isExchangingRef = useRef<boolean>(false);
   const isAutoScrollEnabledRef = useRef(true);
   const shouldScrollUserMessageRef = useRef<boolean>(false);
 
@@ -207,67 +202,8 @@ export const useChat = () => {
     rooms.find((room) => room.id === currentRoomId) || rooms[0];
 
   useEffect(() => {
-    if (tokenParam && !isExchangingRef.current) {
-      isExchangingRef.current = true;
-
-      const exchangeToken = async () => {
-        setLoginStatus("loading");
-
-        try {
-          const response = await fetch(LOGIN_URL, {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({ accessToken: tokenParam, mode }),
-          });
-
-          if (!response.ok) {
-            throw new Error("Failed to exchange token");
-          }
-
-          const data = await response.json();
-          const aiToken =
-            data.accessToken ||
-            (typeof data === "string" ? data : data.token || data.access_token);
-
-          if (!aiToken) {
-            throw new Error("No token found in response");
-          }
-
-          localStorage.setItem(TOKEN_KEY, aiToken);
-          setIsAuthenticated(true);
-          setLoginStatus("success");
-
-          window.setTimeout(() => {
-            setLoginStatus("idle");
-          }, 1000);
-
-          const newUrl = window.location.pathname;
-          window.history.replaceState({}, "", newUrl);
-          console.log("AI Server Token saved and URL cleaned");
-        } catch (error) {
-          console.error("Token exchange failed", error);
-          setIsAuthenticated(false);
-          setLoginStatus("idle");
-          localStorage.removeItem(TOKEN_KEY);
-
-          if (
-            window.confirm(
-              "유니돔 로그인이 필요합니다. 로그인 페이지로 이동할까요?",
-            )
-          ) {
-            handleRequiredLogin();
-          }
-        }
-      };
-
-      void exchangeToken();
-    } else {
-      const savedToken = localStorage.getItem(TOKEN_KEY);
-      setIsAuthenticated(!!savedToken);
-    }
-  }, [mode, tokenParam]);
+    getOrCreateGuestDeviceId();
+  }, []);
 
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(rooms));
@@ -370,13 +306,13 @@ export const useChat = () => {
   }, [currentRoom.messages, isLoading]);
 
   const createNewRoom = () => {
-    const emptyRoom = rooms.find((room) => room.messages.length === 0);
+    const emptyRoom = rooms.find((room) => room.messages.length === 0 && room.service === activeService);
     if (emptyRoom) {
       setCurrentRoomId(emptyRoom.id);
       return;
     }
 
-    const newRoom = createEmptyRoom();
+    const newRoom = createEmptyRoom(activeService);
     setRooms((prev) => [newRoom, ...prev]);
     setCurrentRoomId(newRoom.id);
   };
@@ -385,13 +321,14 @@ export const useChat = () => {
     const updatedRooms = rooms.filter((room) => room.id !== id);
 
     if (updatedRooms.length === 0) {
-      const newRoom = createEmptyRoom();
+      const newRoom = createEmptyRoom(activeService);
       setRooms([newRoom]);
       setCurrentRoomId(newRoom.id);
     } else {
       setRooms(updatedRooms);
       if (currentRoomId === id) {
-        setCurrentRoomId(updatedRooms[0].id);
+        const sameServiceRoom = updatedRooms.find((room) => room.service === activeService);
+        setCurrentRoomId(sameServiceRoom ? sameServiceRoom.id : updatedRooms[0].id);
       }
     }
   };
@@ -404,7 +341,7 @@ export const useChat = () => {
 
   const clearHistory = () => {
     if (window.confirm("모든 대화 내역을 삭제하시겠습니까?")) {
-      const newRoom = createEmptyRoom();
+      const newRoom = createEmptyRoom(activeService);
       setRooms([newRoom]);
       setCurrentRoomId(newRoom.id);
     }
@@ -519,12 +456,6 @@ export const useChat = () => {
         // ... (classify logic)
       }
 
-      const token = localStorage.getItem(TOKEN_KEY);
-      if (!token) {
-        setIsAuthenticated(false);
-        handleRequiredLogin();
-        return;
-      }
 
       let baseMessages = [...currentRoom.messages];
 
@@ -553,23 +484,17 @@ export const useChat = () => {
 
       for (let attempt = 0; attempt < 2; attempt += 1) {
         try {
-          const response = await fetch(CHAT_URL, {
+          const response = await fetch(getChatUrl(activeService), {
             method: "POST",
             cache: "no-cache",
             headers: {
               "Content-Type": "application/json",
-              Authorization: `Bearer ${token}`,
+              "X-Guest-Device-Id": getOrCreateGuestDeviceId(),
             },
             body: requestBody,
             signal: abortControllerRef.current.signal,
           });
 
-          if (response.status === 401) {
-            localStorage.removeItem(TOKEN_KEY);
-            setIsAuthenticated(false);
-            handleRequiredLogin();
-            return;
-          }
 
           if (!response.ok) {
             const raw = await response.text().catch(() => "");
@@ -702,6 +627,7 @@ export const useChat = () => {
   };
 
   return {
+    activeService,
     rooms,
     currentRoom,
     currentRoomId,

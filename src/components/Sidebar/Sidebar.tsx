@@ -1,9 +1,25 @@
 import React, { useState, useRef, useEffect } from "react";
 import styled from "styled-components";
-import { MessageSquare, Plus, Trash2, Edit2, Check, X } from "lucide-react";
+import {
+  Plus,
+  Trash2,
+  Edit2,
+  Check,
+  X,
+  Home,
+  GraduationCap,
+  PanelLeftClose,
+} from "lucide-react";
 import { COLORS } from "../../constants/colors";
 import type { ChatRoom } from "../../types/chat";
 import AppCenterLogo from "../../assets/텍스트O_블랙.png";
+import ChatbotLogo from "../../assets/chatbot-logo.svg";
+
+// 추후 로고 이미지 파일을 추가하려면 아래 주석을 해제하고 이미지 파일명을 적절히 설정하세요.
+// import UnidormLogoImg from "../../assets/unidorm-logo.png";
+// import IntipLogoImg from "../../assets/intip-logo.png";
+const UNIDORM_LOGO_SRC: string | null = null; // UnidormLogoImg
+const INTIP_LOGO_SRC: string | null = null; // IntipLogoImg
 
 const SidebarContainer = styled.div<{ $isOpen: boolean }>`
   width: 280px;
@@ -14,7 +30,7 @@ const SidebarContainer = styled.div<{ $isOpen: boolean }>`
   border-right: 1px solid rgba(0, 0, 0, 0.08);
   display: flex;
   flex-direction: column;
-  padding: 20px 15px;
+  padding: 16px 8px;
   transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
   z-index: 50;
 
@@ -38,13 +54,62 @@ const SidebarContainer = styled.div<{ $isOpen: boolean }>`
   }
 `;
 
+const SidebarHeader = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  margin-bottom: 20px;
+  padding: 0 4px;
+`;
+
+const SidebarBrand = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+`;
+
+const BrandLogo = styled.img`
+  width: 32px;
+  height: 32px;
+  object-fit: contain;
+`;
+
+const BrandName = styled.span`
+  font-size: 16px;
+  font-weight: 700;
+  color: ${COLORS.textDark};
+  font-family:
+    "Pretendard",
+    -apple-system,
+    sans-serif;
+`;
+
+const CollapseButton = styled.button`
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 6px;
+  color: #666;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  transition: all 0.2s ease;
+
+  &:hover {
+    color: ${COLORS.textDark};
+    background-color: rgba(0, 0, 0, 0.05);
+  }
+`;
+
 const NewChatButton = styled.button`
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
   width: 100%;
-  padding: 14px;
+  padding: 8px;
   background-color: rgba(255, 255, 255, 0.5);
   color: ${COLORS.textDark};
   border: 1px solid rgba(0, 0, 0, 0.1);
@@ -77,8 +142,8 @@ const RoomList = styled.div`
 const RoomItem = styled.div<{ $isActive: boolean }>`
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 12px 14px;
+  gap: 8px;
+  padding: 8px;
   border-radius: 16px;
   cursor: pointer;
   font-size: 14px;
@@ -142,6 +207,28 @@ const IconButton = styled.button`
   }
 `;
 
+const ServiceLogoCircle = styled.div<{ $service: "unidorm" | "intip" }>`
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+
+  background-color: ${(props) =>
+    props.$service === "unidorm" ? "#eef2ff" : "#ecfdf5"};
+  color: ${(props) => (props.$service === "unidorm" ? "#0046ff" : "#10b981")};
+  border: 1.5px solid
+    ${(props) => (props.$service === "unidorm" ? "#d0deff" : "#a7f3d0")};
+`;
+
+const ServiceLogoImage = styled.img`
+  width: 14px;
+  height: 14px;
+  object-fit: contain;
+`;
+
 const SidebarFooter = styled.div`
   margin-top: 20px;
   padding-top: 15px;
@@ -195,6 +282,7 @@ interface SidebarProps {
   onClearHistory: () => void;
   onDeleteRoom: (id: string) => void;
   onUpdateRoomTitle: (id: string, title: string) => void;
+  onToggleSidebar: () => void;
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({
@@ -206,6 +294,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onClearHistory,
   onDeleteRoom,
   onUpdateRoomTitle,
+  onToggleSidebar,
 }) => {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editTitle, setEditTitle] = useState("");
@@ -245,6 +334,16 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
   return (
     <SidebarContainer $isOpen={isOpen}>
+      <SidebarHeader>
+        <SidebarBrand>
+          <BrandLogo src={ChatbotLogo} alt="챗불이 로고" />
+          <BrandName>챗불이</BrandName>
+        </SidebarBrand>
+        <CollapseButton onClick={onToggleSidebar} title="사이드바 닫기">
+          <PanelLeftClose size={20} />
+        </CollapseButton>
+      </SidebarHeader>
+
       <NewChatButton onClick={onNewChat}>
         <Plus size={18} />
         새로운 대화
@@ -256,7 +355,19 @@ export const Sidebar: React.FC<SidebarProps> = ({
             $isActive={room.id === currentRoomId}
             onClick={() => onSelectRoom(room.id)}
           >
-            <MessageSquare size={16} />
+            <ServiceLogoCircle $service={room.service || "unidorm"}>
+              {(room.service || "unidorm") === "intip" ? (
+                INTIP_LOGO_SRC ? (
+                  <ServiceLogoImage src={INTIP_LOGO_SRC} alt="INTIP" />
+                ) : (
+                  <GraduationCap size={12} />
+                )
+              ) : UNIDORM_LOGO_SRC ? (
+                <ServiceLogoImage src={UNIDORM_LOGO_SRC} alt="UNIDorm" />
+              ) : (
+                <Home size={12} />
+              )}
+            </ServiceLogoCircle>
 
             {editingId === room.id ? (
               <>

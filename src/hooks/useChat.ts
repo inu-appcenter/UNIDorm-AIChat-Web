@@ -128,9 +128,9 @@ export const useChat = () => {
     searchParamsRef.current = new URLSearchParams(window.location.search);
   }
 
-  const mode = searchParamsRef.current.get("mode") || "prod";
-  const rawService = searchParamsRef.current.get("service") || "unidorm";
-  const activeService: "unidorm" | "intip" = (rawService.toLowerCase() === "intip" ? "intip" : "unidorm");
+  const mode = searchParamsRef.current.get("mode") || "dev";
+  const rawService = searchParamsRef.current.get("service") || "intip";
+  const activeService: "unidorm" | "intip" = (rawService.toLowerCase() === "unidorm" ? "unidorm" : "intip");
 
   const getFrontendBaseUrl = () => {
     if (

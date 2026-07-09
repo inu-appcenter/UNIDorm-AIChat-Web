@@ -1,8 +1,7 @@
 export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
-// 기존의 8002 포트 대신 API_BASE_URL의 /classify 엔드포인트를 사용합니다.
-export const CLASSIFY_URL = `${API_BASE_URL}/unidorm/classify`;
-export const CHAT_URL = `${API_BASE_URL}/unidorm/chat`;
-export const LOGIN_URL = `${API_BASE_URL}/unidorm/auth/login`;
+
+export const getChatUrl = (service: string) => `${API_BASE_URL}/${service}/chat`;
+export const getClassifyUrl = (service: string) => `${API_BASE_URL}/${service}/classify`;
 
 export const getApiEndpoints = (service: "unidorm" | "intip", mode: string = "prod") => {
   const prefix = service === "intip" ? "/inuchat" : "/unidorm";

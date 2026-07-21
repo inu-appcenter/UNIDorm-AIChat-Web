@@ -4,6 +4,12 @@ export const getChatUrl = (service: "unidorm" | "intip") => {
   return `${baseUrl}${prefix}/chat`;
 };
 
+export const getFeedbackUrl = (service: "unidorm" | "intip") => {
+  const prefix = service === "intip" ? "/inuchat" : "/unidorm";
+  const baseUrl = import.meta.env.VITE_API_BASE_URL || "https://ai-server.inuappcenter.kr";
+  return `${baseUrl}${prefix}/feedback`;
+};
+
 export const getClassifyUrl = (service: "unidorm" | "intip") => {
   const prefix = service === "intip" ? "/inuchat" : "/unidorm";
   const baseUrl = import.meta.env.VITE_API_BASE_URL || "https://ai-server.inuappcenter.kr";

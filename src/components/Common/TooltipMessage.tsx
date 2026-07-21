@@ -147,6 +147,7 @@ export default function TooltipMessage({
     let resizeObserver: ResizeObserver | null = null;
 
     window.addEventListener("resize", updateFloatingCoordinates);
+    window.addEventListener("scroll", updateFloatingCoordinates, true);
     window.addEventListener("load", handleWindowLoad);
 
     if (typeof ResizeObserver !== "undefined") {
@@ -166,6 +167,7 @@ export default function TooltipMessage({
 
     return () => {
       window.removeEventListener("resize", updateFloatingCoordinates);
+      window.removeEventListener("scroll", updateFloatingCoordinates, true);
       window.removeEventListener("load", handleWindowLoad);
       resizeObserver?.disconnect();
       animationFrameIds.forEach((frameId) => {
@@ -214,16 +216,15 @@ const TooltipContainer = styled.div<{
   $floatingCoordinates: FloatingCoordinates | null;
 }>`
   position: absolute;
-  z-index: 30;
-  width: ${({ $width }) => $width};
+  z-index: 5;
+  width: ${({ $width }) => ($width === "fit-content" ? "max-content" : $width)};
   ${({ $minWidth }) => $minWidth && `min-width: ${$minWidth};`}
   padding: 10px 22px;
   color: #fff;
   font-size: 12px;
   text-align: center;
   cursor: pointer;
-  white-space: pre-line;
-  word-break: keep-all;
+  white-space: pre;
   line-height: 1.5;
   background-color: ${TOOLTIP_BG};
   backdrop-filter: blur(8px);

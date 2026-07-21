@@ -205,7 +205,7 @@ export default function TooltipMessage({
   return createPortal(tooltipElement, document.body);
 }
 
-const TOOLTIP_BG = "rgba(0, 0, 0, 0.45)";
+const TOOLTIP_BG = "rgba(40, 40, 40, 0.75)";
 
 const TooltipContainer = styled.div<{
   $position: TooltipPosition;
@@ -227,8 +227,8 @@ const TooltipContainer = styled.div<{
   white-space: pre;
   line-height: 1.5;
   background-color: ${TOOLTIP_BG};
-  backdrop-filter: blur(12px) saturate(180%);
-  -webkit-backdrop-filter: blur(12px) saturate(180%);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
   border-radius: 10px;
   border: 1px solid rgba(255, 255, 255, 0.18);
   box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.2);

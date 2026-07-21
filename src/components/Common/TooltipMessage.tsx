@@ -205,7 +205,7 @@ export default function TooltipMessage({
   return createPortal(tooltipElement, document.body);
 }
 
-const TOOLTIP_BG = "rgba(18, 18, 24, 0.72)";
+const TOOLTIP_BG = "rgba(40, 40, 40, 0.9)";
 
 const TooltipContainer = styled.div<{
   $position: TooltipPosition;
@@ -219,23 +219,19 @@ const TooltipContainer = styled.div<{
   z-index: 5;
   width: ${({ $width }) => ($width === "fit-content" ? "max-content" : $width)};
   ${({ $minWidth }) => $minWidth && `min-width: ${$minWidth};`}
-  padding: 10px 24px 10px 18px;
-  color: #ffffff;
+  padding: 10px 22px;
+  color: #fff;
   font-size: 12px;
-  font-weight: 500;
   text-align: center;
   cursor: pointer;
   white-space: pre;
   line-height: 1.5;
   background-color: ${TOOLTIP_BG};
-  backdrop-filter: blur(14px) saturate(160%);
-  -webkit-backdrop-filter: blur(14px) saturate(160%);
-  border-radius: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  box-shadow:
-    0 10px 25px -5px rgba(0, 0, 0, 0.25),
-    0 8px 10px -6px rgba(0, 0, 0, 0.1),
-    inset 0 1px 1px 0 rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
 
   ${({ $floating, $floatingCoordinates, $position, $align }) =>
     $floating

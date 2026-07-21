@@ -258,11 +258,11 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
 
         {showTooltip && !isDropdownOpen && (
           <TooltipMessage
-            message="다양한 챗봇 서비스를 확인해보세요!"
+            message="다양한 챗봇 서비스를\n확인해보세요!"
             onClose={handleCloseTooltip}
             position="bottom"
             align="left"
-            minWidth="220px"
+            // minWidth="220px"
           />
         )}
 

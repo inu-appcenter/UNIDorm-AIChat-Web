@@ -183,11 +183,9 @@ export default function App() {
                   ));
                 })()}
                 <Disclaimer>
-                  챗불이는 실수할 수 있으니 중요한 정보는 직접 확인하세요.
-                  <br />첫 질문 답변은 오래 걸릴 수 있습니다.(5초 이상)
+                  챗불이는 AI이며 실수할 수 있어요.
                   <br />
-                  채팅 내용은 품질 개선을 위해 사용됩니다. 민감한 개인정보를
-                  입력하지 마세요.
+                  중요한 정보는 직접 확인하세요.
                 </Disclaimer>
                 <ScrollSpacer id="scroll-spacer" />
               </>

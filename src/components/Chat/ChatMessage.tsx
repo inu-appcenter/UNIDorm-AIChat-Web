@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import styled from "styled-components";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { Copy, Check, RefreshCw, ExternalLink } from "lucide-react";
+import { Copy, Check, RefreshCw, ExternalLink, ThumbsUp, ThumbsDown } from "lucide-react";
 import LoadingAnimation from "../../assets/횃불이ai로딩애니메이션.gif";
 import { COLORS } from "../../constants/colors";
 import type { ChatButton as ChatButtonType } from "../../types/chat";
@@ -186,6 +186,9 @@ interface ChatMessageProps {
   buttons?: ChatButtonType[];
   isAuthenticated: boolean;
   onRequiredLogin: () => void;
+  serverMsgId?: string;
+  feedbackScore?: 1 | -1 | null;
+  onFeedback?: (score: 1 | -1) => void;
 }
 
 /**
@@ -299,6 +302,9 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
   buttons,
   isAuthenticated,
   onRequiredLogin,
+  serverMsgId,
+  feedbackScore,
+  onFeedback,
 }) => {
   const isUser = role === "user";
   const isLoading = !isUser && content === "";
@@ -494,6 +500,25 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
                   )}
                   {copied ? "복사됨" : "복사"}
                 </ActionButton>
+
+                {onFeedback && serverMsgId && (
+                  <>
+                    <ActionButton
+                      onClick={() => handleAuthAction(() => onFeedback(1))}
+                      title="좋아요"
+                      style={feedbackScore === 1 ? { color: COLORS.inuBlue, fontWeight: 600 } : undefined}
+                    >
+                      <ThumbsUp size={12} color={feedbackScore === 1 ? COLORS.inuBlue : undefined} />
+                    </ActionButton>
+                    <ActionButton
+                      onClick={() => handleAuthAction(() => onFeedback(-1))}
+                      title="싫어요"
+                      style={feedbackScore === -1 ? { color: "#ff4d4f", fontWeight: 600 } : undefined}
+                    >
+                      <ThumbsDown size={12} color={feedbackScore === -1 ? "#ff4d4f" : undefined} />
+                    </ActionButton>
+                  </>
+                )}
 
                 {isLast && onRegenerate && (
                   <ActionButton

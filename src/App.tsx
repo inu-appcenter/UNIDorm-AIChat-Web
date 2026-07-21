@@ -40,6 +40,7 @@ export default function App() {
     chatAreaRef,
     selectedChatbotType,
     setSelectedChatbotType,
+    sendFeedback,
   } = useChat();
 
   const handleSelectRoom = (id: string) => {
@@ -145,6 +146,11 @@ export default function App() {
                       isError={msg.isError}
                       buttons={msg.buttons}
                       isLast={index === currentRoom.messages.length - 1}
+                      serverMsgId={msg.messageId}
+                      feedbackScore={msg.feedbackScore}
+                      onFeedback={(score) =>
+                        msg.messageId && sendFeedback(msg.id, msg.messageId, score)
+                      }
                       onRetry={() =>
                         sendMessage(
                           currentRoom.messages[index - 1]?.content || "",

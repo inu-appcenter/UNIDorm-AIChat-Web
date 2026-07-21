@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import type { ChatRoom, ChatMessage } from "../types/chat";
-import { getChatUrl, type ChatbotType } from "../constants/api";
+import { getChatUrl, getFeedbackUrl, type ChatbotType } from "../constants/api";
 import { injectButtonPlaceholders } from "../utils/chatButtons";
 
 const STORAGE_KEY = "unidorm_chat_rooms";
@@ -351,6 +351,7 @@ export const useChat = () => {
     content: string,
     isComplete = false,
     buttons?: ChatButton[],
+    messageId?: string,
   ) => {
     setRooms((prev) =>
       prev.map((room) => {
@@ -366,6 +367,7 @@ export const useChat = () => {
             content,
             isComplete,
             buttons,
+            ...(messageId ? { messageId } : {}),
           };
         } else {
           messages.push({
@@ -375,6 +377,7 @@ export const useChat = () => {
             timestamp: Date.now(),
             isComplete,
             buttons,
+            ...(messageId ? { messageId } : {}),
           });
         }
 
@@ -510,6 +513,8 @@ export const useChat = () => {
             throw new ChatHttpError(response.status, detail);
           }
 
+          const messageId = response.headers.get("X-Message-ID") || response.headers.get("x-message-id") || undefined;
+
           const reader = response.body?.getReader();
           if (!reader) {
             throw new Error("응답 스트림이 없습니다.");
@@ -534,6 +539,7 @@ export const useChat = () => {
               streamingMessage.content,
               false,
               streamingMessage.buttons,
+              messageId,
             );
           }
 
@@ -560,7 +566,7 @@ export const useChat = () => {
             BUTTON_MAP,
           );
 
-          updateAiMessage(finalMessage.content, true, finalMessage.buttons);
+          updateAiMessage(finalMessage.content, true, finalMessage.buttons, messageId);
           return;
         } catch (error) {
           if (isAbortError(error)) {
@@ -626,6 +632,46 @@ export const useChat = () => {
     }
   };
 
+  const sendFeedback = async (
+    clientMsgId: string,
+    serverMsgId: string,
+    score: 1 | -1,
+  ) => {
+    try {
+      const response = await fetch(getFeedbackUrl(activeService), {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-Guest-Device-Id": getOrCreateGuestDeviceId(),
+        },
+        body: JSON.stringify({
+          messageId: serverMsgId,
+          score,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error("피드백 반영 실패");
+      }
+
+      setRooms((prev) =>
+        prev.map((room) => {
+          if (room.id !== currentRoomId) return room;
+          return {
+            ...room,
+            messages: room.messages.map((msg) =>
+              msg.id === clientMsgId
+                ? { ...msg, feedbackScore: score }
+                : msg,
+            ),
+          };
+        }),
+      );
+    } catch (error) {
+      console.error("Failed to submit feedback:", error);
+    }
+  };
+
   return {
     activeService,
     rooms,
@@ -646,5 +692,6 @@ export const useChat = () => {
     sendMessage,
     stopGeneration,
     regenerateResponse,
+    sendFeedback,
   };
 };

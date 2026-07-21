@@ -217,15 +217,14 @@ const TooltipContainer = styled.div<{
 }>`
   position: absolute;
   z-index: 5;
-  width: ${({ $width }) => $width};
+  width: ${({ $width }) => ($width === "fit-content" ? "max-content" : $width)};
   ${({ $minWidth }) => $minWidth && `min-width: ${$minWidth};`}
   padding: 10px 22px;
   color: #fff;
   font-size: 12px;
   text-align: center;
   cursor: pointer;
-  white-space: pre-line;
-  word-break: keep-all;
+  white-space: pre;
   line-height: 1.5;
   background-color: ${TOOLTIP_BG};
   backdrop-filter: blur(8px);

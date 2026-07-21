@@ -18,6 +18,7 @@ export interface ChatMessage {
 
 export interface ChatRoom {
   id: string;
+  sessionId?: string;
   title: string;
   messages: ChatMessage[];
   chatbotType?: string;

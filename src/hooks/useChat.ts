@@ -6,16 +6,23 @@ import { injectButtonPlaceholders } from "../utils/chatButtons";
 const STORAGE_KEY = "unidorm_chat_rooms";
 const GUEST_DEVICE_ID_KEY = "unidorm_chat_guest_device_id";
 const AUTO_SCROLL_THRESHOLD_PX = 80;
-const MAX_HISTORY_LENGTH = 2; // 직전 대화 1턴(내 질문 + AI 응답)만 유지
+const MAX_HISTORY_LENGTH = 6; // 직전 대화 3턴(6개 메시지) 유지
+
+const generateUUID = (): string => {
+  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+    return crypto.randomUUID();
+  }
+  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
+    const r = (Math.random() * 16) | 0;
+    const v = c === "x" ? r : (r & 0x3) | 0x8;
+    return v.toString(16);
+  });
+};
 
 const getOrCreateGuestDeviceId = (): string => {
   let deviceId = localStorage.getItem(GUEST_DEVICE_ID_KEY);
   if (!deviceId) {
-    deviceId = "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
-      const r = (Math.random() * 16) | 0;
-      const v = c === "x" ? r : (r & 0x3) | 0x8;
-      return v.toString(16);
-    });
+    deviceId = generateUUID();
     localStorage.setItem(GUEST_DEVICE_ID_KEY, deviceId);
   }
   return deviceId;
@@ -91,6 +98,7 @@ const getChatErrorMessage = (error: unknown) => {
 
 const createEmptyRoom = (service: "unidorm" | "intip"): ChatRoom => ({
   id: Date.now().toString(),
+  sessionId: generateUUID(),
   title: "새로운 대화",
   messages: [],
   chatbotType: "special",
@@ -480,9 +488,12 @@ export const useChat = () => {
             content: msg.content,
           }));
 
+      const currentSessionId = currentRoom.sessionId || generateUUID();
+
       const requestBody = JSON.stringify({
         question: content,
         history,
+        sessionId: currentSessionId,
       });
 
       for (let attempt = 0; attempt < 2; attempt += 1) {

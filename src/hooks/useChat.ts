@@ -632,6 +632,17 @@ export const useChat = () => {
     }
   };
 
+  const [closedTooltipRooms, setClosedTooltipRooms] = useState<Record<string, boolean>>({});
+
+  const isFeedbackTooltipClosed = Boolean(closedTooltipRooms[currentRoomId]);
+
+  const closeFeedbackTooltip = () => {
+    setClosedTooltipRooms((prev) => ({
+      ...prev,
+      [currentRoomId]: true,
+    }));
+  };
+
   const sendFeedback = async (
     clientMsgId: string,
     serverMsgId: string,
@@ -693,5 +704,7 @@ export const useChat = () => {
     stopGeneration,
     regenerateResponse,
     sendFeedback,
+    isFeedbackTooltipClosed,
+    closeFeedbackTooltip,
   };
 };

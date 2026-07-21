@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import styled from "styled-components";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
@@ -6,6 +6,7 @@ import { Copy, Check, RefreshCw, ExternalLink, ThumbsUp, ThumbsDown } from "luci
 import LoadingAnimation from "../../assets/횃불이ai로딩애니메이션.gif";
 import { COLORS } from "../../constants/colors";
 import type { ChatButton as ChatButtonType } from "../../types/chat";
+import TooltipMessage from "../Common/TooltipMessage";
 import {
   splitContentByButtonPlaceholders,
   stripButtonPlaceholders,
@@ -189,6 +190,8 @@ interface ChatMessageProps {
   serverMsgId?: string;
   feedbackScore?: 1 | -1 | null;
   onFeedback?: (score: 1 | -1) => void;
+  showTooltip?: boolean;
+  onCloseTooltip?: () => void;
 }
 
 /**
@@ -305,10 +308,13 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
   serverMsgId,
   feedbackScore,
   onFeedback,
+  showTooltip,
+  onCloseTooltip,
 }) => {
   const isUser = role === "user";
   const isLoading = !isUser && content === "";
   const [copied, setCopied] = useState(false);
+  const feedbackAnchorRef = useRef<HTMLDivElement>(null);
   const copyableContent = stripButtonPlaceholders(content);
 
   const formatTime = (ts?: number | Date) => {
@@ -501,8 +507,17 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
                   {copied ? "복사됨" : "복사"}
                 </ActionButton>
 
+                {isLast && onRegenerate && (
+                  <ActionButton
+                    onClick={() => handleAuthAction(onRegenerate)}
+                    title="다시 생성"
+                  >
+                    <RefreshCw size={12} /> 다시 생성
+                  </ActionButton>
+                )}
+
                 {onFeedback && serverMsgId && (
-                  <>
+                  <div ref={feedbackAnchorRef} style={{ display: "inline-flex", gap: "4px", position: "relative" }}>
                     <ActionButton
                       onClick={() => handleAuthAction(() => onFeedback(1))}
                       title="좋아요"
@@ -517,16 +532,17 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
                     >
                       <ThumbsDown size={12} color={feedbackScore === -1 ? "#ff4d4f" : undefined} />
                     </ActionButton>
-                  </>
-                )}
 
-                {isLast && onRegenerate && (
-                  <ActionButton
-                    onClick={() => handleAuthAction(onRegenerate)}
-                    title="다시 생성"
-                  >
-                    <RefreshCw size={12} /> 다시 생성
-                  </ActionButton>
+                    {showTooltip && onCloseTooltip && (
+                      <TooltipMessage
+                        message="응답에 대해 평가해주세요!"
+                        onClose={onCloseTooltip}
+                        position="bottom"
+                        align="center"
+                        anchorRef={feedbackAnchorRef}
+                      />
+                    )}
+                  </div>
                 )}
               </>
             )}

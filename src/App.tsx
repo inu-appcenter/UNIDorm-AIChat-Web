@@ -41,6 +41,8 @@ export default function App() {
     selectedChatbotType,
     setSelectedChatbotType,
     sendFeedback,
+    isFeedbackTooltipClosed,
+    closeFeedbackTooltip,
   } = useChat();
 
   const handleSelectRoom = (id: string) => {
@@ -128,41 +130,58 @@ export default function App() {
               />
             ) : (
               <>
-                {currentRoom.messages.map((msg, index) => (
-                  <React.Fragment key={index}>
-                    {isDifferentDay(index) && (
-                      <DateSeparatorContainer>
-                        <DateLine />
-                        <DateText>
-                          {formatSeparatorDate(msg.timestamp)}
-                        </DateText>
-                        <DateLine />
-                      </DateSeparatorContainer>
-                    )}
-                    <ChatMessage
-                      role={msg.role}
-                      content={msg.content}
-                      timestamp={msg.timestamp}
-                      isError={msg.isError}
-                      buttons={msg.buttons}
-                      isLast={index === currentRoom.messages.length - 1}
-                      serverMsgId={msg.messageId}
-                      feedbackScore={msg.feedbackScore}
-                      onFeedback={(score) =>
-                        msg.messageId && sendFeedback(msg.id, msg.messageId, score)
-                      }
-                      onRetry={() =>
-                        sendMessage(
-                          currentRoom.messages[index - 1]?.content || "",
-                          true,
-                        )
-                      }
-                      onRegenerate={regenerateResponse}
-                      isAuthenticated={isAuthenticated}
-                      onRequiredLogin={handleRequiredLogin}
-                    />
-                  </React.Fragment>
-                ))}
+                {(() => {
+                  const lastAiIndex = [...currentRoom.messages]
+                    .map((m, i) => ({ role: m.role, i }))
+                    .filter((m) => m.role === "ai" || m.role === "assistant")
+                    .pop()?.i;
+
+                  return currentRoom.messages.map((msg, index) => (
+                    <React.Fragment key={index}>
+                      {isDifferentDay(index) && (
+                        <DateSeparatorContainer>
+                          <DateLine />
+                          <DateText>
+                            {formatSeparatorDate(msg.timestamp)}
+                          </DateText>
+                          <DateLine />
+                        </DateSeparatorContainer>
+                      )}
+                      <ChatMessage
+                        role={msg.role}
+                        content={msg.content}
+                        timestamp={msg.timestamp}
+                        isError={msg.isError}
+                        buttons={msg.buttons}
+                        isLast={index === currentRoom.messages.length - 1}
+                        serverMsgId={msg.messageId}
+                        feedbackScore={msg.feedbackScore}
+                        onFeedback={(score) => {
+                          if (msg.messageId) {
+                            sendFeedback(msg.id, msg.messageId, score);
+                            closeFeedbackTooltip();
+                          }
+                        }}
+                        showTooltip={
+                          !isFeedbackTooltipClosed &&
+                          index === lastAiIndex &&
+                          Boolean(msg.messageId) &&
+                          !isLoading
+                        }
+                        onCloseTooltip={closeFeedbackTooltip}
+                        onRetry={() =>
+                          sendMessage(
+                            currentRoom.messages[index - 1]?.content || "",
+                            true,
+                          )
+                        }
+                        onRegenerate={regenerateResponse}
+                        isAuthenticated={isAuthenticated}
+                        onRequiredLogin={handleRequiredLogin}
+                      />
+                    </React.Fragment>
+                  ));
+                })()}
                 <Disclaimer>
                   챗불이는 실수할 수 있으니 중요한 정보는 직접 확인하세요.
                   <br />첫 질문 답변은 오래 걸릴 수 있습니다.(5초 이상)

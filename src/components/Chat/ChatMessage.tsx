@@ -537,7 +537,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
                       <TooltipMessage
                         message="응답에 대해 평가해주세요!"
                         onClose={onCloseTooltip}
-                        position="bottom"
+                        position="top"
                         align="center"
                         anchorRef={feedbackAnchorRef}
                       />

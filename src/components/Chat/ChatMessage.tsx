@@ -539,7 +539,6 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
                         onClose={onCloseTooltip}
                         position="top"
                         align="center"
-                        anchorRef={feedbackAnchorRef}
                       />
                     )}
                   </div>

@@ -225,13 +225,12 @@ const TooltipContainer = styled.div<{
   text-align: center;
   cursor: pointer;
   white-space: pre;
-  line-height: 1.5;
-  background-color: ${TOOLTIP_BG};
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
+  background-color: transparent;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
   border-radius: 10px;
-  border: 1px solid rgba(255, 255, 255, 0.18);
-  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.2);
+  border: 1px solid red;
+  box-shadow: none;
 
   ${({ $floating, $floatingCoordinates, $position, $align }) =>
     $floating

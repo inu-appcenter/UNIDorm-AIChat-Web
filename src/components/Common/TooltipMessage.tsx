@@ -147,6 +147,7 @@ export default function TooltipMessage({
     let resizeObserver: ResizeObserver | null = null;
 
     window.addEventListener("resize", updateFloatingCoordinates);
+    window.addEventListener("scroll", updateFloatingCoordinates, true);
     window.addEventListener("load", handleWindowLoad);
 
     if (typeof ResizeObserver !== "undefined") {
@@ -166,6 +167,7 @@ export default function TooltipMessage({
 
     return () => {
       window.removeEventListener("resize", updateFloatingCoordinates);
+      window.removeEventListener("scroll", updateFloatingCoordinates, true);
       window.removeEventListener("load", handleWindowLoad);
       resizeObserver?.disconnect();
       animationFrameIds.forEach((frameId) => {

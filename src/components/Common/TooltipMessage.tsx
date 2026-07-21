@@ -216,7 +216,7 @@ const TooltipContainer = styled.div<{
   $floatingCoordinates: FloatingCoordinates | null;
 }>`
   position: absolute;
-  z-index: 10;
+  z-index: 5;
   width: ${({ $width }) => $width};
   ${({ $minWidth }) => $minWidth && `min-width: ${$minWidth};`}
   padding: 10px 22px;

@@ -1,17 +1,23 @@
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import styled from "styled-components";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { Copy, Check, RefreshCw, ExternalLink } from "lucide-react";
+import {
+  Copy,
+  Check,
+  RefreshCw,
+  ExternalLink,
+  ThumbsUp,
+  ThumbsDown,
+} from "lucide-react";
 import LoadingAnimation from "../../assets/횃불이ai로딩애니메이션.gif";
 import { COLORS } from "../../constants/colors";
 import type { ChatButton as ChatButtonType } from "../../types/chat";
+import TooltipMessage from "../Common/TooltipMessage";
 import {
   splitContentByButtonPlaceholders,
   stripButtonPlaceholders,
 } from "../../utils/chatButtons";
-
-
 
 const MessageRow = styled.div<{ $isUser: boolean }>`
   width: 100%;
@@ -60,7 +66,6 @@ const MessageBubble = styled.div<{ $isUser: boolean; $isError?: boolean }>`
   }};
 
   border-radius: ${(props) => (props.$isUser ? "8px 8px 0px 8px" : "0px")};
-
 
   /* Markdown Styles */
   p {
@@ -151,13 +156,16 @@ const StyledButtonLink = styled.a<{ $primary?: boolean }>`
   transition: all 0.2s ease;
   cursor: pointer;
 
-  background-color: ${(props) => (props.$primary ? COLORS.figmaBlue : "#ffffff")};
-  color: ${(props) => (props.$primary ? "#ffffff" : COLORS.figmaBlue)} !important;
+  background-color: ${(props) =>
+    props.$primary ? COLORS.figmaBlue : "#ffffff"};
+  color: ${(props) =>
+    props.$primary ? "#ffffff" : COLORS.figmaBlue} !important;
   border: 1.5px solid ${COLORS.figmaBlue};
   box-shadow: 0 2px 6px rgba(0, 122, 255, 0.08);
 
   &:hover {
-    background-color: ${(props) => (props.$primary ? "#0056b3" : "rgba(225, 236, 255, 0.2)")};
+    background-color: ${(props) =>
+      props.$primary ? "#0056b3" : "rgba(225, 236, 255, 0.2)"};
     transform: translateY(-1.5px);
     box-shadow: 0 4px 12px rgba(0, 122, 255, 0.15);
   }
@@ -186,6 +194,11 @@ interface ChatMessageProps {
   buttons?: ChatButtonType[];
   isAuthenticated: boolean;
   onRequiredLogin: () => void;
+  serverMsgId?: string;
+  feedbackScore?: 1 | -1 | null;
+  onFeedback?: (score: 1 | -1) => void;
+  showTooltip?: boolean;
+  onCloseTooltip?: () => void;
 }
 
 /**
@@ -261,9 +274,7 @@ const wrapTextWithSpans = (children: React.ReactNode): React.ReactNode => {
 
   if (Array.isArray(children)) {
     return children.map((child, index) => (
-      <React.Fragment key={index}>
-        {wrapTextWithSpans(child)}
-      </React.Fragment>
+      <React.Fragment key={index}>{wrapTextWithSpans(child)}</React.Fragment>
     ));
   }
 
@@ -271,17 +282,45 @@ const wrapTextWithSpans = (children: React.ReactNode): React.ReactNode => {
 };
 
 const markdownComponents: any = {
-  p: ({ children }: { children: React.ReactNode }) => <p>{wrapTextWithSpans(children)}</p>,
-  li: ({ children }: { children: React.ReactNode }) => <li>{wrapTextWithSpans(children)}</li>,
-  strong: ({ children }: { children: React.ReactNode }) => <strong>{wrapTextWithSpans(children)}</strong>,
-  em: ({ children }: { children: React.ReactNode }) => <em>{wrapTextWithSpans(children)}</em>,
-  h1: ({ children }: { children: React.ReactNode }) => <h1>{wrapTextWithSpans(children)}</h1>,
-  h2: ({ children }: { children: React.ReactNode }) => <h2>{wrapTextWithSpans(children)}</h2>,
-  h3: ({ children }: { children: React.ReactNode }) => <h3>{wrapTextWithSpans(children)}</h3>,
-  h4: ({ children }: { children: React.ReactNode }) => <h4>{wrapTextWithSpans(children)}</h4>,
-  h5: ({ children }: { children: React.ReactNode }) => <h5>{wrapTextWithSpans(children)}</h5>,
-  h6: ({ children }: { children: React.ReactNode }) => <h6>{wrapTextWithSpans(children)}</h6>,
-  a: ({ children, href, ...props }: { children: React.ReactNode; href?: string; [key: string]: any }) => (
+  p: ({ children }: { children: React.ReactNode }) => (
+    <p>{wrapTextWithSpans(children)}</p>
+  ),
+  li: ({ children }: { children: React.ReactNode }) => (
+    <li>{wrapTextWithSpans(children)}</li>
+  ),
+  strong: ({ children }: { children: React.ReactNode }) => (
+    <strong>{wrapTextWithSpans(children)}</strong>
+  ),
+  em: ({ children }: { children: React.ReactNode }) => (
+    <em>{wrapTextWithSpans(children)}</em>
+  ),
+  h1: ({ children }: { children: React.ReactNode }) => (
+    <h1>{wrapTextWithSpans(children)}</h1>
+  ),
+  h2: ({ children }: { children: React.ReactNode }) => (
+    <h2>{wrapTextWithSpans(children)}</h2>
+  ),
+  h3: ({ children }: { children: React.ReactNode }) => (
+    <h3>{wrapTextWithSpans(children)}</h3>
+  ),
+  h4: ({ children }: { children: React.ReactNode }) => (
+    <h4>{wrapTextWithSpans(children)}</h4>
+  ),
+  h5: ({ children }: { children: React.ReactNode }) => (
+    <h5>{wrapTextWithSpans(children)}</h5>
+  ),
+  h6: ({ children }: { children: React.ReactNode }) => (
+    <h6>{wrapTextWithSpans(children)}</h6>
+  ),
+  a: ({
+    children,
+    href,
+    ...props
+  }: {
+    children: React.ReactNode;
+    href?: string;
+    [key: string]: any;
+  }) => (
     <a {...props} href={href} target="_blank" rel="noopener noreferrer">
       {wrapTextWithSpans(renderLinkText(children, href))}
     </a>
@@ -299,10 +338,16 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
   buttons,
   isAuthenticated,
   onRequiredLogin,
+  serverMsgId,
+  feedbackScore,
+  onFeedback,
+  showTooltip,
+  onCloseTooltip,
 }) => {
   const isUser = role === "user";
   const isLoading = !isUser && content === "";
   const [copied, setCopied] = useState(false);
+  const feedbackAnchorRef = useRef<HTMLDivElement>(null);
   const copyableContent = stripButtonPlaceholders(content);
 
   const formatTime = (ts?: number | Date) => {
@@ -462,7 +507,10 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
   };
 
   return (
-    <MessageRow $isUser={isUser} className={isUser ? "chat-message-user" : "chat-message-ai"}>
+    <MessageRow
+      $isUser={isUser}
+      className={isUser ? "chat-message-user" : "chat-message-ai"}
+    >
       {/*{!isUser && (*/}
       {/*  <Avatar $isUser={isUser}>*/}
       {/*    <Bot size={20} />*/}
@@ -474,9 +522,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
           {isLoading ? (
             <LoadingGif src={LoadingAnimation} alt="답변 생성 중..." />
           ) : (
-            <>
-              {renderRichContent()}
-            </>
+            <>{renderRichContent()}</>
           )}
         </MessageBubble>
 
@@ -502,6 +548,55 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
                   >
                     <RefreshCw size={12} /> 다시 생성
                   </ActionButton>
+                )}
+
+                {onFeedback && serverMsgId && (
+                  <div
+                    ref={feedbackAnchorRef}
+                    style={{
+                      display: "inline-flex",
+                      gap: "4px",
+                      position: "relative",
+                    }}
+                  >
+                    <ActionButton
+                      onClick={() => handleAuthAction(() => onFeedback(1))}
+                      title="좋아요"
+                      style={
+                        feedbackScore === 1
+                          ? { color: COLORS.inuBlue, fontWeight: 600 }
+                          : undefined
+                      }
+                    >
+                      <ThumbsUp
+                        size={12}
+                        color={feedbackScore === 1 ? COLORS.inuBlue : undefined}
+                      />
+                    </ActionButton>
+                    <ActionButton
+                      onClick={() => handleAuthAction(() => onFeedback(-1))}
+                      title="싫어요"
+                      style={
+                        feedbackScore === -1
+                          ? { color: "#ff4d4f", fontWeight: 600 }
+                          : undefined
+                      }
+                    >
+                      <ThumbsDown
+                        size={12}
+                        color={feedbackScore === -1 ? "#ff4d4f" : undefined}
+                      />
+                    </ActionButton>
+
+                    {showTooltip && onCloseTooltip && (
+                      <TooltipMessage
+                        message="챗불이가 더 똑똑해지도록\n도와주세요!"
+                        onClose={onCloseTooltip}
+                        position="top"
+                        align="center"
+                      />
+                    )}
+                  </div>
                 )}
               </>
             )}

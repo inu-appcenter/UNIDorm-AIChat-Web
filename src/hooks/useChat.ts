@@ -1,21 +1,28 @@
 import { useState, useRef, useEffect } from "react";
 import type { ChatRoom, ChatMessage } from "../types/chat";
-import { getChatUrl, type ChatbotType } from "../constants/api";
+import { getChatUrl, getFeedbackUrl, type ChatbotType } from "../constants/api";
 import { injectButtonPlaceholders } from "../utils/chatButtons";
 
 const STORAGE_KEY = "unidorm_chat_rooms";
 const GUEST_DEVICE_ID_KEY = "unidorm_chat_guest_device_id";
 const AUTO_SCROLL_THRESHOLD_PX = 80;
-const MAX_HISTORY_LENGTH = 2; // 직전 대화 1턴(내 질문 + AI 응답)만 유지
+const MAX_HISTORY_LENGTH = 6; // 직전 대화 3턴(6개 메시지) 유지
+
+const generateUUID = (): string => {
+  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+    return crypto.randomUUID();
+  }
+  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
+    const r = (Math.random() * 16) | 0;
+    const v = c === "x" ? r : (r & 0x3) | 0x8;
+    return v.toString(16);
+  });
+};
 
 const getOrCreateGuestDeviceId = (): string => {
   let deviceId = localStorage.getItem(GUEST_DEVICE_ID_KEY);
   if (!deviceId) {
-    deviceId = "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
-      const r = (Math.random() * 16) | 0;
-      const v = c === "x" ? r : (r & 0x3) | 0x8;
-      return v.toString(16);
-    });
+    deviceId = generateUUID();
     localStorage.setItem(GUEST_DEVICE_ID_KEY, deviceId);
   }
   return deviceId;
@@ -91,6 +98,7 @@ const getChatErrorMessage = (error: unknown) => {
 
 const createEmptyRoom = (service: "unidorm" | "intip"): ChatRoom => ({
   id: Date.now().toString(),
+  sessionId: generateUUID(),
   title: "새로운 대화",
   messages: [],
   chatbotType: "special",
@@ -351,6 +359,7 @@ export const useChat = () => {
     content: string,
     isComplete = false,
     buttons?: ChatButton[],
+    messageId?: string,
   ) => {
     setRooms((prev) =>
       prev.map((room) => {
@@ -366,6 +375,7 @@ export const useChat = () => {
             content,
             isComplete,
             buttons,
+            ...(messageId ? { messageId } : {}),
           };
         } else {
           messages.push({
@@ -375,6 +385,7 @@ export const useChat = () => {
             timestamp: Date.now(),
             isComplete,
             buttons,
+            ...(messageId ? { messageId } : {}),
           });
         }
 
@@ -477,9 +488,12 @@ export const useChat = () => {
             content: msg.content,
           }));
 
+      const currentSessionId = currentRoom.sessionId || generateUUID();
+
       const requestBody = JSON.stringify({
         question: content,
         history,
+        sessionId: currentSessionId,
       });
 
       for (let attempt = 0; attempt < 2; attempt += 1) {
@@ -510,6 +524,8 @@ export const useChat = () => {
             throw new ChatHttpError(response.status, detail);
           }
 
+          const messageId = response.headers.get("X-Message-ID") || response.headers.get("x-message-id") || undefined;
+
           const reader = response.body?.getReader();
           if (!reader) {
             throw new Error("응답 스트림이 없습니다.");
@@ -534,6 +550,7 @@ export const useChat = () => {
               streamingMessage.content,
               false,
               streamingMessage.buttons,
+              messageId,
             );
           }
 
@@ -560,7 +577,7 @@ export const useChat = () => {
             BUTTON_MAP,
           );
 
-          updateAiMessage(finalMessage.content, true, finalMessage.buttons);
+          updateAiMessage(finalMessage.content, true, finalMessage.buttons, messageId);
           return;
         } catch (error) {
           if (isAbortError(error)) {
@@ -626,6 +643,57 @@ export const useChat = () => {
     }
   };
 
+  const [closedTooltipRooms, setClosedTooltipRooms] = useState<Record<string, boolean>>({});
+
+  const isFeedbackTooltipClosed = Boolean(closedTooltipRooms[currentRoomId]);
+
+  const closeFeedbackTooltip = () => {
+    setClosedTooltipRooms((prev) => ({
+      ...prev,
+      [currentRoomId]: true,
+    }));
+  };
+
+  const sendFeedback = async (
+    clientMsgId: string,
+    serverMsgId: string,
+    score: 1 | -1,
+  ) => {
+    try {
+      const response = await fetch(getFeedbackUrl(activeService), {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-Guest-Device-Id": getOrCreateGuestDeviceId(),
+        },
+        body: JSON.stringify({
+          messageId: serverMsgId,
+          score,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error("피드백 반영 실패");
+      }
+
+      setRooms((prev) =>
+        prev.map((room) => {
+          if (room.id !== currentRoomId) return room;
+          return {
+            ...room,
+            messages: room.messages.map((msg) =>
+              msg.id === clientMsgId
+                ? { ...msg, feedbackScore: score }
+                : msg,
+            ),
+          };
+        }),
+      );
+    } catch (error) {
+      console.error("Failed to submit feedback:", error);
+    }
+  };
+
   return {
     activeService,
     rooms,
@@ -646,5 +714,8 @@ export const useChat = () => {
     sendMessage,
     stopGeneration,
     regenerateResponse,
+    sendFeedback,
+    isFeedbackTooltipClosed,
+    closeFeedbackTooltip,
   };
 };

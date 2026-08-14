@@ -20,23 +20,32 @@ const InputWrapper = styled.div`
 const GlowContainer = styled.div<{ $isFocused: boolean; $isLoading: boolean }>`
   position: relative;
   border-radius: 24px;
-  background: transparent;
-  box-shadow: 0px 2px 10px 0px rgba(0, 0, 0, 0.1); /* Figma: shadow-[0px_2px_10px_0px_rgba(0,0,0,0.1)] */
+  background: linear-gradient(
+    0deg,
+    rgba(255, 255, 255, 0.56) 0%,
+    rgba(253, 253, 253, 0.56) 81.73%,
+    rgba(235, 235, 235, 0.56) 100%
+  );
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  box-shadow: 0px 2px 10px 0px rgba(0, 0, 0, 0.1);
   transition: all 0.3s ease;
-  border: 1px solid ${(props) => (props.$isFocused ? "rgba(9, 88, 217, 0.3)" : "rgba(0, 0, 0, 0.05)")};
+  border: 1px solid
+    ${(props) =>
+      props.$isFocused ? "rgba(9, 88, 217, 0.4)" : "rgba(255, 255, 255, 0.8)"};
 `;
 
 const InputForm = styled.form`
   display: flex;
   align-items: center;
-  background-color: ${COLORS.bgWhite};
+  background: transparent;
   border-radius: 24px;
-  padding: 6px 6px 6px 20px;
+  padding: 6px 8px 6px 20px;
   border: none;
   width: 100%;
   position: relative;
   z-index: 1;
-  min-height: 53px; /* Figma: h-[53px] */
+  min-height: 53px;
   box-sizing: border-box;
 `;
 
@@ -45,20 +54,25 @@ const TextInput = styled.textarea`
   border: none;
   background: transparent;
   padding: 0;
-  font-size: 16px; /* Figma: text-[16px] */
+  font-size: 16px;
+  font-weight: 500;
   resize: none;
   outline: none;
   max-height: 120px;
-  font-family: inherit;
-  color: ${COLORS.textDark};
+  font-family:
+    "Pretendard",
+    -apple-system,
+    sans-serif;
+  color: #1c1e1e;
   line-height: 1.4;
   margin-right: 10px;
   align-self: center;
-  
+
   &::placeholder {
-    color: #8e8e93; /* Figma: text-[color:var(--6,#8e8e93)] */
+    color: ${COLORS.textPlaceholder};
+    font-weight: 500;
   }
-  
+
   &::-webkit-scrollbar {
     width: 0;
   }
@@ -66,15 +80,12 @@ const TextInput = styled.textarea`
 
 const ActionButton = styled.button<{ $isActive: boolean; $isStop?: boolean }>`
   background-color: ${(props) => {
-    if (props.$isStop) return "#fff1f0";
-    return props.$isActive ? COLORS.figmaBlue : "#f0f0f0";
-  }};
-  color: ${(props) => {
     if (props.$isStop) return "#ff4d4f";
-    return props.$isActive ? "#ffffff" : "#bbbbbb";
+    return props.$isActive ? COLORS.figmaBlue : "#c4c4c6";
   }};
-  border: ${(props) => (props.$isStop ? "1px solid #ff4d4f" : "none")};
-  border-radius: 50%;
+  color: #ffffff;
+  border: none;
+  border-radius: 60px;
   width: 40px;
   height: 40px;
   display: flex;
@@ -84,22 +95,22 @@ const ActionButton = styled.button<{ $isActive: boolean; $isStop?: boolean }>`
     props.$isActive || props.$isStop ? "pointer" : "default"};
   transition: all 0.2s ease;
   flex-shrink: 0;
-  
-  /* Figma shadow: shadow-[0px_0px_10px_0px_rgba(145,206,255,0.6)] */
+
   box-shadow: ${(props) =>
     props.$isActive && !props.$isStop
       ? "0px 0px 10px 0px rgba(145, 206, 255, 0.6)"
       : "none"};
 
   &:hover {
-    background-color: ${(props) => (props.$isStop ? "#ffccc7" : "")};
-    transform: ${(props) => (props.$isActive && !props.$isStop ? "scale(1.03)" : "none")};
+    transform: ${(props) =>
+      props.$isActive || props.$isStop ? "scale(1.04)" : "none"};
   }
-  
+
   &:active {
-    transform: translateY(0);
+    transform: scale(0.98);
   }
 `;
+
 
 interface ChatInputProps {
   onSendMessage: (text: string) => void;
@@ -170,19 +181,20 @@ export const ChatInput: React.FC<ChatInputProps> = ({
   return (
     <InputWrapper>
       <GlowContainer $isFocused={isFocused} $isLoading={isLoading}>
-        <InputForm 
-          onSubmit={handleSubmit} 
+        <InputForm
+          onSubmit={handleSubmit}
           onClick={!isAuthenticated ? onRequiredLogin : undefined}
           style={{ cursor: !isAuthenticated ? "pointer" : "default" }}
         >
           {!isAuthenticated ? (
-            <div 
-              style={{ 
-                flex: 1, 
-                padding: "10px 0", 
-                fontSize: "16px", 
+            <div
+              style={{
+                flex: 1,
+                padding: "10px 0",
+                fontSize: "16px",
+                fontWeight: 500,
                 color: "#8e8e93",
-                userSelect: "none"
+                userSelect: "none",
               }}
             >
               {placeholder}
@@ -205,15 +217,19 @@ export const ChatInput: React.FC<ChatInputProps> = ({
           )}
           <ActionButton
             type="submit"
-            $isActive={isAuthenticated && (input.trim().length > 0 || isLoading)}
+            $isActive={
+              isAuthenticated && (input.trim().length > 0 || isLoading)
+            }
             $isStop={isLoading}
             disabled={!isLoading && (!input.trim() || !isAuthenticated)}
-            title={!isAuthenticated ? "로그인" : isLoading ? "응답 중지" : "전송"}
+            title={
+              !isAuthenticated ? "로그인" : isLoading ? "응답 중지" : "전송"
+            }
           >
             {isLoading ? (
               <Square size={16} fill="currentColor" />
             ) : (
-              <ArrowRight size={18} />
+              <ArrowRight size={20} strokeWidth={2.5} />
             )}
           </ActionButton>
         </InputForm>
@@ -221,3 +237,4 @@ export const ChatInput: React.FC<ChatInputProps> = ({
     </InputWrapper>
   );
 };
+

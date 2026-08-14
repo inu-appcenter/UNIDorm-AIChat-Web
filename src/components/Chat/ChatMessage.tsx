@@ -37,35 +37,33 @@ const BubbleContainer = styled.div<{ $isUser: boolean }>`
 `;
 
 const MessageBubble = styled.div<{ $isUser: boolean; $isError?: boolean }>`
-  padding: ${(props) => (props.$isUser ? "12px 18px" : "8px 0px")};
-  font-size: 15px;
-  line-height: 1.6;
+  padding: ${(props) => (props.$isUser ? "16px" : "8px 0px")};
+  font-size: ${(props) => (props.$isUser ? "16px" : "15px")};
+  line-height: ${(props) => (props.$isUser ? "22px" : "1.6")};
+  font-weight: ${(props) => (props.$isUser ? "400" : "inherit")};
   word-break: keep-all;
   overflow-wrap: anywhere;
 
   background-color: ${(props) => {
     if (props.$isError) return "#fff1f0";
-    return props.$isUser ? "rgba(255, 255, 255, 0.10)" : "transparent";
+    return props.$isUser ? COLORS.figmaBlue : "transparent";
   }};
 
   backdrop-filter: none;
 
   color: ${(props) => {
     if (props.$isError) return "#ff4d4f";
-    return COLORS.textDark;
+    return props.$isUser ? "#ffffff" : COLORS.textDark;
   }};
 
   border: ${(props) => {
     if (props.$isError) return "1px solid #ffa39e";
-    return props.$isUser ? "0.5px solid #E7E7E7" : "none";
+    return "none";
   }};
 
-  box-shadow: ${(props) => {
-    if (props.$isError) return "none";
-    return props.$isUser ? "0px 2px 10px 0px rgba(0, 0, 0, 0.03)" : "none";
-  }};
+  box-shadow: none;
 
-  border-radius: ${(props) => (props.$isUser ? "8px 8px 0px 8px" : "0px")};
+  border-radius: ${(props) => (props.$isUser ? "8px" : "0px")};
 
   /* Markdown Styles */
   p {
@@ -75,7 +73,7 @@ const MessageBubble = styled.div<{ $isUser: boolean; $isError?: boolean }>`
     margin: 0;
   }
   a {
-    color: ${(props) => (props.$isUser ? COLORS.inuYellow : COLORS.inuBlue)};
+    color: ${(props) => (props.$isUser ? "#ffd700" : COLORS.inuBlue)};
     text-decoration: underline;
     font-weight: 500;
     word-break: break-all;

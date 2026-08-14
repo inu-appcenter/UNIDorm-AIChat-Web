@@ -36,11 +36,13 @@ export const MainArea = styled.div`
 
 export const AmbientOrb = styled.img`
   position: absolute;
-  top: 404px;
+  bottom: 0;
   left: 50%;
-  transform: translateX(-50%);
+  transform: translate(-50%, 30%);
   width: 512px;
-  height: 549.5px;
+  max-width: 120vw;
+  height: auto;
+  aspect-ratio: 512 / 549.5;
   pointer-events: none;
   z-index: 0;
   opacity: 0.6;

@@ -253,9 +253,15 @@ export const useChat = () => {
       }
     }
     requestAnimationFrame(() => {
-      scrollToBottom();
+      if (currentRoom.messages.length === 0) {
+        if (chatAreaRef.current) {
+          chatAreaRef.current.scrollTop = 0;
+        }
+      } else {
+        scrollToBottom();
+      }
     });
-  }, [currentRoomId]);
+  }, [currentRoomId, currentRoom.messages.length]);
 
   useEffect(() => {
     const chatArea = chatAreaRef.current;

@@ -1,4 +1,4 @@
-import React, { useMemo } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import styled from "styled-components";
 import { COLORS } from "../../constants/colors";
 import ChatbotLogo from "../../assets/chatbot-logo.svg";
@@ -15,6 +15,11 @@ const GuideScreenContainer = styled.div`
   margin: 0;
   gap: 16px;
   z-index: 1;
+
+  @media (max-height: 680px) {
+    gap: 10px;
+    padding-top: 10px;
+  }
 `;
 
 const LogoContainer = styled.div`
@@ -25,6 +30,12 @@ const LogoContainer = styled.div`
   justify-content: center;
   flex-shrink: 0;
   margin-bottom: 4px;
+
+  @media (max-height: 680px) {
+    width: 56px;
+    height: 47px;
+    margin-bottom: 0px;
+  }
 `;
 
 const LogoImage = styled.img`
@@ -67,6 +78,10 @@ const SubtitleText = styled.p`
   color: #6f6f6f;
   text-align: center;
   white-space: pre-line;
+
+  @media (max-height: 680px) {
+    margin-top: 6px;
+  }
 `;
 
 const ChipsContainer = styled.div`
@@ -79,6 +94,11 @@ const ChipsContainer = styled.div`
   max-width: 520px;
   margin-top: 4px;
   box-sizing: border-box;
+
+  @media (max-height: 680px) {
+    gap: 8px;
+    margin-top: 2px;
+  }
 `;
 
 const GuideChip = styled.button`
@@ -104,6 +124,11 @@ const GuideChip = styled.button`
   transition: all 0.2s ease;
   word-break: keep-all;
   box-sizing: border-box;
+
+  @media (max-height: 680px) {
+    padding: 9px 16px;
+    font-size: 13.5px;
+  }
 
   &:hover {
     background: rgba(225, 236, 255, 0.5);
@@ -215,12 +240,32 @@ export const GuideScreen: React.FC<GuideScreenProps> = ({
   onRequiredLogin,
   activeService,
 }) => {
+  const [windowHeight, setWindowHeight] = useState(() =>
+    typeof window !== "undefined" ? window.innerHeight : 800,
+  );
+
+  useEffect(() => {
+    const handleResize = () => setWindowHeight(window.innerHeight);
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
+  const visibleCount = useMemo(() => {
+    if (windowHeight < 560) return 2;
+    if (windowHeight < 660) return 3;
+    if (windowHeight < 760) return 4;
+    return 5;
+  }, [windowHeight]);
+
   const randomMessages = useMemo(() => {
     const pool = activeService === "intip" ? INTIP_MESSAGES : DORM_MESSAGES;
-    // 무작위 셔플 후 상위 5개 질문 무작위 추출
     const shuffled = [...pool].sort(() => Math.random() - 0.5);
     return shuffled.slice(0, 5);
   }, [activeService]);
+
+  const visibleMessages = useMemo(() => {
+    return randomMessages.slice(0, visibleCount);
+  }, [randomMessages, visibleCount]);
 
   const handleClick = (message: string) => {
     if (!isAuthenticated) {
@@ -257,7 +302,7 @@ export const GuideScreen: React.FC<GuideScreenProps> = ({
         <SubtitleText>{getSubtitleText()}</SubtitleText>
       </TextBlock>
       <ChipsContainer>
-        {randomMessages.map((message, index) => (
+        {visibleMessages.map((message, index) => (
           <GuideChip key={index} onClick={() => handleClick(message)}>
             {message}
           </GuideChip>

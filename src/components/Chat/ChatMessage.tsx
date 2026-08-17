@@ -2,6 +2,7 @@ import React, { useState, useRef } from "react";
 import styled from "styled-components";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import remarkBreaks from "remark-breaks";
 import {
   Copy,
   Check,
@@ -72,29 +73,130 @@ const MessageBubble = styled.div<{ $isUser: boolean; $isError?: boolean }>`
   p:last-child {
     margin: 0;
   }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    margin: 14px 0 6px 0;
+    font-weight: 700;
+    line-height: 1.4;
+    color: inherit;
+    &:first-child {
+      margin-top: 0;
+    }
+  }
+  h1 {
+    font-size: 1.25em;
+  }
+  h2 {
+    font-size: 1.15em;
+  }
+  h3 {
+    font-size: 1.05em;
+  }
+  h4,
+  h5,
+  h6 {
+    font-size: 1em;
+  }
+
   a {
     color: ${(props) => (props.$isUser ? "#ffd700" : COLORS.inuBlue)};
     text-decoration: underline;
     font-weight: 500;
     word-break: break-all;
   }
+
   ul,
   ol {
     margin: 8px 0;
-    padding-left: 24px;
+    padding-left: 22px;
   }
   li {
     margin-bottom: 4px;
   }
+  li:last-child {
+    margin-bottom: 0;
+  }
+
   strong {
     font-weight: 700;
   }
+
   code {
     background-color: rgba(0, 0, 0, 0.05);
     padding: 2px 6px;
     border-radius: 4px;
     font-family: monospace;
     font-size: 0.9em;
+  }
+
+  pre {
+    background-color: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 6px;
+    padding: 10px 14px;
+    overflow-x: auto;
+    margin: 8px 0;
+
+    code {
+      background-color: transparent;
+      padding: 0;
+      border-radius: 0;
+      font-size: 13px;
+    }
+  }
+
+  blockquote {
+    margin: 8px 0;
+    padding: 6px 12px;
+    border-left: 3.5px solid ${COLORS.figmaBlue};
+    background-color: rgba(0, 122, 255, 0.04);
+    border-radius: 0 6px 6px 0;
+    color: #4a5568;
+
+    p {
+      margin: 0;
+    }
+  }
+
+  hr {
+    border: none;
+    border-top: 1px solid #e2e8f0;
+    margin: 14px 0;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 10px 0;
+    font-size: 13.5px;
+    text-align: left;
+  }
+
+  th {
+    background-color: rgba(0, 122, 255, 0.08);
+    color: ${COLORS.textDark};
+    font-weight: 600;
+    padding: 8px 12px;
+    border: 1px solid #e2e8f0;
+  }
+
+  td {
+    padding: 8px 12px;
+    border: 1px solid #e2e8f0;
+  }
+
+  tr:nth-child(even) td {
+    background-color: rgba(0, 0, 0, 0.015);
+  }
+
+  input[type="checkbox"] {
+    margin-right: 6px;
+    vertical-align: middle;
   }
 `;
 
@@ -222,6 +324,93 @@ const COMBINED_LINK_REGEX =
   /\[([^\]]*)\]\((https?:\/\/[^\s)]+)\)|(https?:\/\/[^\s가-힣\]()]+)/g;
 
 /**
+ * AI 응답에서 자주 나오는 LaTeX 수학/화살표 기호 매핑
+ */
+const LATEX_SYMBOLS: Record<string, string> = {
+  rightarrow: "→",
+  to: "→",
+  leftarrow: "←",
+  gets: "←",
+  leftrightarrow: "↔",
+  Rightarrow: "⇒",
+  Leftarrow: "⇐",
+  Leftrightarrow: "⇔",
+  pm: "±",
+  times: "×",
+  div: "÷",
+  neq: "≠",
+  ne: "≠",
+  leq: "≤",
+  le: "≤",
+  geq: "≥",
+  ge: "≥",
+  approx: "≈",
+  cdot: "·",
+  bullet: "•",
+  dots: "…",
+  cdots: "⋯",
+  infty: "∞",
+  deg: "°",
+};
+
+/**
+ * AI 응답 텍스트를 마크다운 엔진이 잘 해석할 수 있도록 전처리하는 함수
+ */
+const preprocessMarkdown = (rawText: string): string => {
+  if (!rawText) return rawText;
+
+  let text = rawText;
+
+  // 1. LaTeX 기호 치환 ($\rightarrow$, $\to$, \rightarrow 등)
+  text = text.replace(
+    /\$(?:\\?([a-zA-Z]+))\$/g,
+    (match, symbol) => LATEX_SYMBOLS[symbol] || match,
+  );
+  text = text.replace(
+    /\\(rightarrow|to|leftarrow|gets|leftrightarrow|Rightarrow|Leftarrow|Leftrightarrow|pm|times|div|neq|ne|leq|le|geq|ge|approx|cdot|bullet|dots|cdots|infty|deg)\b/g,
+    (match, symbol) => LATEX_SYMBOLS[symbol] || match,
+  );
+
+  // 2. '=== 섹션 제목 ===' 형태를 Setext 헤딩으로 오인하지 않도록 안전하게 변환
+  text = text.replace(
+    /^[ \t]*={3,}[ \t]*(.*?)[ \t]*={3,}[ \t]*$/gm,
+    (_, inner) => {
+      const trimmed = inner.trim();
+      return trimmed ? `\n> **${trimmed}**\n` : "\n---\n";
+    },
+  );
+
+  // 3. 단독 '===' 구분선이 앞 문장과 합쳐져 H1으로 변환되는 것 방지
+  text = text.replace(/(.)\n(={3,}|-{3,})(\n|$)/g, "$1\n\n$2$3");
+
+  // 4. URL/링크 정제
+  text = text.replace(
+    COMBINED_LINK_REGEX,
+    (match, label, link, naked) => {
+      if (link) {
+        const { cleaned, rest } = cleanUrl(link);
+        return `[${label}](${cleaned})${rest}`;
+      } else if (naked) {
+        const { cleaned, rest } = cleanUrl(naked);
+        return `<${cleaned}>${rest}`;
+      }
+      return match;
+    },
+  );
+
+  // 5. HTML 태그가 아닌 한글/일반 텍스트가 담긴 <식별자> 형태 이스케이프 (<학적변동관리> 등)
+  text = text.replace(/<([^>/\s]+)>/g, (match, tag) => {
+    // URL autolink거나 기본 허용 HTML 태그인 경우 유지
+    if (/^https?:\/\//i.test(tag) || /^(br|b|i|u|strong|em|code|pre|p|span|div|table|th|td|tr|tbody|thead|ul|ol|li|hr|img|a)$/i.test(tag)) {
+      return match;
+    }
+    return `&lt;${tag}&gt;`;
+  });
+
+  return text;
+};
+
+/**
  * 링크 텍스트가 URL 날것인 경우 "바로가기"로 대체하는 헬퍼 함수
  */
 const renderLinkText = (children: React.ReactNode, href?: string) => {
@@ -310,6 +499,14 @@ const markdownComponents: any = {
   h6: ({ children }: { children: React.ReactNode }) => (
     <h6>{wrapTextWithSpans(children)}</h6>
   ),
+  blockquote: ({ children }: { children: React.ReactNode }) => (
+    <blockquote>{wrapTextWithSpans(children)}</blockquote>
+  ),
+  table: ({ children, ...props }: any) => (
+    <div style={{ overflowX: "auto", margin: "8px 0" }}>
+      <table {...props}>{children}</table>
+    </div>
+  ),
   a: ({
     children,
     href,
@@ -382,26 +579,8 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
   };
 
   const renderContent = () => {
-    // 텍스트 전처리 (마크다운 엔진 전달용 또는 직접 렌더링용)
-    const processed = content.replace(
-      COMBINED_LINK_REGEX,
-      (match, label, link, naked) => {
-        if (link) {
-          // 이미 마크다운 링크인 경우: URL 정제 후 유지
-          const { cleaned, rest } = cleanUrl(link);
-          return `[${label}](${cleaned})${rest}`;
-        } else if (naked) {
-          // 일반 URL인 경우: 정제 후 <>로 격리
-          const { cleaned, rest } = cleanUrl(naked);
-          return `<${cleaned}>${rest}`;
-        }
-        return match;
-      },
-    );
-
     if (isUser) {
       // 사용자 메시지는 마크다운을 적용하지 않고 텍스트로 처리하되 링크만 수동 연결
-      // (필요 시 사용자 메시지도 마크다운을 적용하려면 아래 AI 로직과 통일 가능)
       const parts: (string | React.JSX.Element)[] = [];
       let lastIndex = 0;
       let match;
@@ -430,9 +609,11 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
       return parts;
     }
 
+    const processed = preprocessMarkdown(content);
+
     return (
       <ReactMarkdown
-        remarkPlugins={[remarkGfm]}
+        remarkPlugins={[remarkGfm, remarkBreaks]}
         components={markdownComponents}
       >
         {processed}
@@ -445,31 +626,18 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
       return renderContent();
     }
 
-    const normalizeLinks = (value: string) =>
-      value.replace(COMBINED_LINK_REGEX, (match, label, link, naked) => {
-        if (link) {
-          const { cleaned, rest } = cleanUrl(link);
-          return `[${label}](${cleaned})${rest}`;
-        }
-
-        if (naked) {
-          const { cleaned, rest } = cleanUrl(naked);
-          return `<${cleaned}>${rest}`;
-        }
-
-        return match;
-      });
-
     const renderMarkdown = (value: string, key: React.Key) => {
       if (!value.trim()) return null;
+
+      const processed = preprocessMarkdown(value);
 
       return (
         <ReactMarkdown
           key={key}
-          remarkPlugins={[remarkGfm]}
+          remarkPlugins={[remarkGfm, remarkBreaks]}
           components={markdownComponents}
         >
-          {normalizeLinks(value)}
+          {processed}
         </ReactMarkdown>
       );
     };

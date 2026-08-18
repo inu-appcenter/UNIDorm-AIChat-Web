@@ -3,6 +3,8 @@ import styled from "styled-components";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import remarkBreaks from "remark-breaks";
+import remarkMath from "remark-math";
+import rehypeKatex from "rehype-katex";
 import {
   Copy,
   Check,
@@ -197,6 +199,19 @@ const MessageBubble = styled.div<{ $isUser: boolean; $isError?: boolean }>`
   input[type="checkbox"] {
     margin-right: 6px;
     vertical-align: middle;
+  }
+
+  /* KaTeX Math Styles */
+  .katex-display {
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding: 8px 0;
+    margin: 8px 0;
+  }
+
+  .katex {
+    font-size: 1.05em;
+    text-rendering: auto;
   }
 `;
 
@@ -407,6 +422,12 @@ const preprocessMarkdown = (rawText: string): string => {
     return `&lt;${tag}&gt;`;
   });
 
+  // 6. LaTeX 수식 오타 및 문법 보정
+  // 6-1. |text{...} -> \text{...} (파이프 오타 보정)
+  text = text.replace(/\|text\s*\{/g, "\\text{");
+  // 6-2. \text { -> \text{ (공백 제거)
+  text = text.replace(/\\text\s+\{/g, "\\text{");
+
   return text;
 };
 
@@ -613,7 +634,8 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
 
     return (
       <ReactMarkdown
-        remarkPlugins={[remarkGfm, remarkBreaks]}
+        remarkPlugins={[remarkGfm, remarkBreaks, remarkMath]}
+        rehypePlugins={[rehypeKatex]}
         components={markdownComponents}
       >
         {processed}
@@ -634,7 +656,8 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
       return (
         <ReactMarkdown
           key={key}
-          remarkPlugins={[remarkGfm, remarkBreaks]}
+          remarkPlugins={[remarkGfm, remarkBreaks, remarkMath]}
+          rehypePlugins={[rehypeKatex]}
           components={markdownComponents}
         >
           {processed}

@@ -18,7 +18,7 @@ const GuideScreenContainer = styled.div`
 
   @media (max-height: 680px) {
     gap: 10px;
-    padding-top: 10px;
+    padding: 10px 0 20px;
   }
 `;
 
@@ -251,9 +251,9 @@ export const GuideScreen: React.FC<GuideScreenProps> = ({
   }, []);
 
   const visibleCount = useMemo(() => {
-    if (windowHeight < 560) return 2;
-    if (windowHeight < 660) return 3;
-    if (windowHeight < 760) return 4;
+    if (windowHeight < 440) return 2;
+    if (windowHeight < 530) return 3;
+    if (windowHeight < 620) return 4;
     return 5;
   }, [windowHeight]);
 

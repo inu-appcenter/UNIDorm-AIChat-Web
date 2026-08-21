@@ -634,7 +634,11 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
 
     return (
       <ReactMarkdown
-        remarkPlugins={[remarkGfm, remarkBreaks, remarkMath]}
+        remarkPlugins={[
+          [remarkGfm, { singleTilde: false }],
+          remarkBreaks,
+          remarkMath,
+        ]}
         rehypePlugins={[rehypeKatex]}
         components={markdownComponents}
       >
@@ -656,7 +660,11 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
       return (
         <ReactMarkdown
           key={key}
-          remarkPlugins={[remarkGfm, remarkBreaks, remarkMath]}
+          remarkPlugins={[
+            [remarkGfm, { singleTilde: false }],
+            remarkBreaks,
+            remarkMath,
+          ]}
           rehypePlugins={[rehypeKatex]}
           components={markdownComponents}
         >

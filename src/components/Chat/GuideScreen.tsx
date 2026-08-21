@@ -283,13 +283,21 @@ export const GuideScreen: React.FC<GuideScreenProps> = ({
 
   const getTitleText = () => {
     if (activeService === "intip") {
-      return `안녕하세요! 대학 생활을 더 편하게\n만들어줄 챗불이에요!`;
+      return `안녕하세요!\n인천대학교 학사 AI 챗봇, 챗불이에요!`;
+    } else if (activeService === "unidorm") {
+      return `안녕하세요! 기숙사 생활을 더 편하게\n만들어줄 챗불이에요!`;
     }
-    return `안녕하세요! 기숙사 생활을 더 편하게\n만들어줄 챗불이에요!`;
+    return `안녕하세요!\n인천대학교 학사 AI 챗봇, 챗불이에요!`;
   };
 
   const getSubtitleText = () => {
-    return `궁금한 점이 있으시다면 아래 메뉴를\n선택하거나 자유롭게 입력해주세요!`;
+    if (activeService === "intip") {
+      return `챗불이는 학칙과 학사 관련 공지사항에\n기반해서 답변할 수 있어요.`;
+    } else if (activeService === "unidorm") {
+      return `기숙사 규정과 공지사항에\n기반해서 답변해드릴 수 있어요.`;
+    }
+
+    return `챗불이는 대학 규정과 학사 관련 공지사항에\n기반해서 답변할 수 있어요.`;
   };
 
   return (

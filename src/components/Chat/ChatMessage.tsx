@@ -317,11 +317,11 @@ interface ChatMessageProps {
 }
 
 /**
- * URL 끝에 붙은 문장 부호와 괄호를 분리하여 정제하는 함수
+ * URL 끝에 붙은 문장 부호와 괄호, 따옴표를 분리하여 정제하는 함수
  */
 const cleanUrl = (url: string) => {
   let end = url.length;
-  while (end > 0 && /[.,!?;:\])]/.test(url[end - 1])) {
+  while (end > 0 && /[.,!?;:\])"']/.test(url[end - 1])) {
     end--;
   }
   return {
@@ -331,12 +331,23 @@ const cleanUrl = (url: string) => {
 };
 
 /**
- * 마크다운 링크와 일반 URL을 구분하여 처리하는 정규표현식
+ * 프로토콜(http/https)이 누락된 도메인 URL에 https:// 스킴을 추가하는 함수
+ */
+const ensureHttpScheme = (url: string) => {
+  if (/^https?:\/\//i.test(url)) {
+    return url;
+  }
+  return `https://${url}`;
+};
+
+/**
+ * 마크다운 링크([label](url)), 일반 HTTP(S) URL, 스킴 없는 도메인 주소(portal.inu.ac.kr 등)를 구분하여 처리하는 정규표현식
  * Group 1, 2: [label](url)
- * Group 3: naked url
+ * Group 3: naked scheme url (https://...)
+ * Group 4: naked domain url (portal.inu.ac.kr, www.inu.ac.kr 등)
  */
 const COMBINED_LINK_REGEX =
-  /\[([^\]]*)\]\((https?:\/\/[^\s)]+)\)|(https?:\/\/[^\s가-힣\]()]+)/g;
+  /\[([^\]]*)\]\((https?:\/\/[^\s)]+)\)|(https?:\/\/[^\s가-힣\]()<>"]+)|(?<![a-zA-Z0-9@/])((?:www\.[a-zA-Z0-9-]+(?:\.[a-zA-Z0-9-]+)*(?:\/[^\s가-힣\]()<>"]*)?|[a-zA-Z0-9](?:[a-zA-Z0-9-]*[a-zA-Z0-9])?\.(?:inu\.ac\.kr|ac\.kr|co\.kr|go\.kr|or\.kr|re\.kr|kr|com|org|net|edu|gov|io|ai|app|me|info|biz|site|xyz|dev|page|gle|gl)(?:\/[^\s가-힣\]()<>"]*)?))/g;
 
 /**
  * AI 응답에서 자주 나오는 LaTeX 수학/화살표 기호 매핑
@@ -376,6 +387,29 @@ const preprocessMarkdown = (rawText: string): string => {
 
   let text = rawText;
 
+  // 0. URL이 비어 있는 출처 마크다운 링크 항목 제거 ([제목](), - [제목]() 등)
+  text = text.replace(
+    /^[ \t]*(?:[-*+]|\d+\.)?[ \t]*\[[^\]]*\]\(\s*\)[ \t]*\r?\n?/gm,
+    "",
+  );
+  text = text.replace(/\[[^\]]*\]\(\s*\)/g, "");
+
+  // 0-1. 출처에 '없음'으로만 표기된 경우 (동일 라인 또는 다음 라인) 해당 내용 및 헤더 제거
+  text = text.replace(
+    /(?:\r?\n|^)[ \t]*(?:#{1,6}\s*)?(?:\*{1,2})?\[?(?:출처|참고자료|참고\s*자료)\]?(?:\*{1,2})?:?[ \t]*(?:\(?\s*(?:없음|해당\s*없음|조문\s*없음|none|n\/a)\s*\)?)[ \t]*(?=\r?\n|$)/gi,
+    "",
+  );
+  text = text.replace(
+    /((?:\r?\n|^)[ \t]*(?:#{1,6}\s*)?(?:\*{1,2})?\[?(?:출처|참고자료|참고\s*자료)\]?(?:\*{1,2})?:?[ \t]*\r?\n)[ \t]*(?:[-*+]|\d+\.)?[ \t]*(?:\(?\s*(?:없음|해당\s*없음|조문\s*없음|none|n\/a)\s*\)?)[ \t]*(?=\r?\n|$)/gi,
+    "$1",
+  );
+
+  // 0-2. 출처 항목이 모두 제거되어 빈 [출처] 헤더만 남은 경우 헤더 제거
+  text = text.replace(
+    /(?:\r?\n|^)[ \t]*(?:#{1,6}\s*)?(?:\*{1,2})?\[?(?:출처|참고자료|참고\s*자료)\]?(?:\*{1,2})?:?[ \t]*(?=\r?\n\s*(?:#{1,6}\s*|\*{1,2}\[?|$)|$)/gi,
+    "",
+  );
+
   // 1. LaTeX 기호 치환 ($\rightarrow$, $\to$, \rightarrow 등)
   text = text.replace(
     /\$(?:\\?([a-zA-Z]+))\$/g,
@@ -401,13 +435,16 @@ const preprocessMarkdown = (rawText: string): string => {
   // 4. URL/링크 정제
   text = text.replace(
     COMBINED_LINK_REGEX,
-    (match, label, link, naked) => {
+    (match, label, link, nakedScheme, nakedDomain) => {
       if (link) {
         const { cleaned, rest } = cleanUrl(link);
-        return `[${label}](${cleaned})${rest}`;
-      } else if (naked) {
-        const { cleaned, rest } = cleanUrl(naked);
+        return `[${label}](${ensureHttpScheme(cleaned)})${rest}`;
+      } else if (nakedScheme) {
+        const { cleaned, rest } = cleanUrl(nakedScheme);
         return `<${cleaned}>${rest}`;
+      } else if (nakedDomain) {
+        const { cleaned, rest } = cleanUrl(nakedDomain);
+        return `[${cleaned}](${ensureHttpScheme(cleaned)})${rest}`;
       }
       return match;
     },
@@ -536,11 +573,16 @@ const markdownComponents: any = {
     children: React.ReactNode;
     href?: string;
     [key: string]: any;
-  }) => (
-    <a {...props} href={href} target="_blank" rel="noopener noreferrer">
-      {wrapTextWithSpans(renderLinkText(children, href))}
-    </a>
-  ),
+  }) => {
+    if (!href || !href.trim()) {
+      return null;
+    }
+    return (
+      <a {...props} href={href} target="_blank" rel="noopener noreferrer">
+        {wrapTextWithSpans(renderLinkText(children, href))}
+      </a>
+    );
+  },
 };
 
 export const ChatMessage: React.FC<ChatMessageProps> = ({
@@ -564,7 +606,9 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
   const isLoading = !isUser && content === "";
   const [copied, setCopied] = useState(false);
   const feedbackAnchorRef = useRef<HTMLDivElement>(null);
-  const copyableContent = stripButtonPlaceholders(content);
+  const copyableContent = isUser
+    ? stripButtonPlaceholders(content)
+    : preprocessMarkdown(stripButtonPlaceholders(content));
 
   const formatTime = (ts?: number | Date) => {
     if (!ts) return "";
@@ -609,14 +653,14 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
 
       while ((match = regex.exec(content)) !== null) {
         parts.push(content.substring(lastIndex, match.index));
-        const [, , link, naked] = match;
-        const targetUrl = link || naked;
+        const [, , link, nakedScheme, nakedDomain] = match;
+        const targetUrl = link || nakedScheme || nakedDomain;
         const { cleaned, rest } = cleanUrl(targetUrl);
 
         parts.push(
           <a
             key={match.index}
-            href={cleaned}
+            href={ensureHttpScheme(cleaned)}
             target="_blank"
             rel="noopener noreferrer"
           >

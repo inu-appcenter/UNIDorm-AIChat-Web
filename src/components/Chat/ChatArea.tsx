@@ -10,11 +10,29 @@ export const ChatArea = styled.div`
   flex-direction: column;
   align-items: center;
   z-index: 1;
+
+  /* 스크롤 및 드래그 렌더링 최적화 */
+  will-change: scroll-position;
+  transform: translateZ(0);
+  overscroll-behavior-y: contain;
+
+  scrollbar-width: auto;
+  scrollbar-color: rgba(0, 0, 0, 0.3) transparent;
+
   &::-webkit-scrollbar {
-    width: 4px;
+    width: 14px;
+  }
+  &::-webkit-scrollbar-track {
+    background: transparent;
   }
   &::-webkit-scrollbar-thumb {
-    background: #dddddd;
-    border-radius: 4px;
+    background: rgba(0, 0, 0, 0.25);
+    border-radius: 9999px;
+    border: 2px solid transparent;
+    background-clip: content-box;
+  }
+  &::-webkit-scrollbar-thumb:hover {
+    background: rgba(0, 0, 0, 0.45);
+    background-clip: content-box;
   }
 `;

@@ -130,12 +130,41 @@ const RoomList = styled.div`
   display: flex;
   flex-direction: column;
   gap: 8px;
+
+  /* 스크롤 및 드래그 렌더링 최적화 */
+  will-change: scroll-position;
+  transform: translateZ(0);
+  overscroll-behavior-y: contain;
+
+  /* 평소에는 스크롤바 숨김 */
+  scrollbar-width: thin;
+  scrollbar-color: transparent transparent;
+
   &::-webkit-scrollbar {
-    width: 4px;
+    width: 14px;
+  }
+  &::-webkit-scrollbar-track {
+    background: transparent;
   }
   &::-webkit-scrollbar-thumb {
-    background: #dddddd;
-    border-radius: 4px;
+    background: transparent;
+    border-radius: 9999px;
+    border: 2px solid transparent;
+    background-clip: content-box;
+    transition: background-color 0.2s ease;
+  }
+
+  /* 사이드바에 마우스 호버 시 스크롤바 표시 */
+  ${SidebarContainer}:hover & {
+    scrollbar-color: rgba(0, 0, 0, 0.25) transparent;
+
+    &::-webkit-scrollbar-thumb {
+      background: rgba(0, 0, 0, 0.25);
+    }
+  }
+
+  &::-webkit-scrollbar-thumb:hover {
+    background: rgba(0, 0, 0, 0.45) !important;
   }
 `;
 
@@ -230,9 +259,9 @@ const ServiceLogoImage = styled.img`
 `;
 
 const SidebarFooter = styled.div`
-  margin-top: 20px;
-  padding-top: 15px;
-  border-top: 1px solid #eeeeee;
+  margin-top: 12px;
+  //padding-top: 15px;
+  //border-top: 1px solid #eeeeee;
 `;
 
 const ClearButton = styled.button`
@@ -258,7 +287,7 @@ const LogoContainer = styled.a`
   display: flex;
   justify-content: center;
   align-items: center;
-  padding: 15px 0 5px 0;
+  padding: 0 0 5px 0;
   opacity: 0.9;
   cursor: pointer;
   transition: opacity 0.2s ease;

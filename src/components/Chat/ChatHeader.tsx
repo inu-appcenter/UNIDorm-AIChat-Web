@@ -281,7 +281,7 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
               </LogoCircle>
               <div>
                 <ItemTitle $isActive={activeService === "intip"}>
-                  챗불이(준비 중)
+                  챗불이
                 </ItemTitle>
                 <ItemDesc>학사 관련 질문을 할 수 있어요</ItemDesc>
               </div>

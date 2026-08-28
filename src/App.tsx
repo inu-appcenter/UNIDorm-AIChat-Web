@@ -183,9 +183,9 @@ export default function App() {
                   ));
                 })()}
                 <Disclaimer>
-                  챗불이는 AI이며 실수할 수 있어요.
+                  챗불이는 AI이며, 인천대학교의 공식 답변이 아니에요.
                   <br />
-                  중요한 정보는 직접 확인하세요.
+                  실수할 수 있으니, 중요한 정보는 직접 확인하세요.
                 </Disclaimer>
                 <ScrollSpacer id="scroll-spacer" />
               </>

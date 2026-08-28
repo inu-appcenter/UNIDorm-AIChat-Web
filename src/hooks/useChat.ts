@@ -9,7 +9,10 @@ const AUTO_SCROLL_THRESHOLD_PX = 80;
 const MAX_HISTORY_LENGTH = 6; // 직전 대화 3턴(6개 메시지) 유지
 
 const generateUUID = (): string => {
-  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+  if (
+    typeof crypto !== "undefined" &&
+    typeof crypto.randomUUID === "function"
+  ) {
     return crypto.randomUUID();
   }
   return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
@@ -105,8 +108,13 @@ const createEmptyRoom = (service: "unidorm" | "intip"): ChatRoom => ({
   service,
 });
 
-const ensureGuideRoom = (rooms: ChatRoom[], activeService: "unidorm" | "intip") => {
-  const emptyRoomIndex = rooms.findIndex((room) => room.messages.length === 0 && room.service === activeService);
+const ensureGuideRoom = (
+  rooms: ChatRoom[],
+  activeService: "unidorm" | "intip",
+) => {
+  const emptyRoomIndex = rooms.findIndex(
+    (room) => room.messages.length === 0 && room.service === activeService,
+  );
 
   if (emptyRoomIndex !== -1) {
     if (emptyRoomIndex === 0) {
@@ -137,7 +145,8 @@ export const useChat = () => {
   }
 
   const rawService = searchParamsRef.current.get("service") || "intip";
-  const activeService: "unidorm" | "intip" = (rawService.toLowerCase() === "unidorm" ? "unidorm" : "intip");
+  const activeService: "unidorm" | "intip" =
+    rawService.toLowerCase() === "unidorm" ? "unidorm" : "intip";
 
   const getFrontendBaseUrl = () => {
     return window.location.origin;
@@ -184,12 +193,17 @@ export const useChat = () => {
       }
     }
 
-    return ensureGuideRoom(initialRooms ?? [createEmptyRoom(activeService)], activeService).rooms;
+    return ensureGuideRoom(
+      initialRooms ?? [createEmptyRoom(activeService)],
+      activeService,
+    ).rooms;
   });
 
   const [currentRoomId, setCurrentRoomId] = useState<string>(() => {
     const guideRoom =
-      rooms.find((room) => room.messages.length === 0 && room.service === activeService) ??
+      rooms.find(
+        (room) => room.messages.length === 0 && room.service === activeService,
+      ) ??
       rooms.find((room) => room.service === activeService) ??
       rooms[0];
     return guideRoom.id;
@@ -197,9 +211,7 @@ export const useChat = () => {
 
   const [isLoading, setIsLoading] = useState(false);
   const [isAuthenticated] = useState<boolean>(true);
-  const [loginStatus] = useState<
-    "idle" | "loading" | "success"
-  >("idle");
+  const [loginStatus] = useState<"idle" | "loading" | "success">("idle");
 
   const chatAreaRef = useRef<HTMLDivElement>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
@@ -272,18 +284,22 @@ export const useChat = () => {
     if (shouldScrollUserMessageRef.current) {
       const userMessages = chatArea.querySelectorAll(".chat-message-user");
       if (userMessages.length > 0) {
-        const lastUserMessage = userMessages[userMessages.length - 1] as HTMLElement;
+        const lastUserMessage = userMessages[
+          userMessages.length - 1
+        ] as HTMLElement;
         const containerRect = chatArea.getBoundingClientRect();
         const targetRect = lastUserMessage.getBoundingClientRect();
-        const scrollOffset = targetRect.top - containerRect.top + chatArea.scrollTop;
+        const scrollOffset =
+          targetRect.top - containerRect.top + chatArea.scrollTop;
 
         // Calculate and set the initial required spacer height dynamically and mathematically
         if (spacer) {
           const currentSpacerHeight = spacer.offsetHeight || 0;
-          const scrollHeightWithoutSpacer = chatArea.scrollHeight - currentSpacerHeight;
+          const scrollHeightWithoutSpacer =
+            chatArea.scrollHeight - currentSpacerHeight;
           const requiredSpacerHeight = Math.max(
             0,
-            scrollOffset + chatArea.clientHeight - scrollHeightWithoutSpacer
+            scrollOffset + chatArea.clientHeight - scrollHeightWithoutSpacer,
           );
           spacer.style.height = `${requiredSpacerHeight}px`;
         }
@@ -291,7 +307,7 @@ export const useChat = () => {
         requestAnimationFrame(() => {
           chatArea.scrollTo({
             top: scrollOffset,
-            behavior: "smooth"
+            behavior: "smooth",
           });
           shouldScrollUserMessageRef.current = false;
         });
@@ -299,16 +315,20 @@ export const useChat = () => {
     } else {
       const userMessages = chatArea.querySelectorAll(".chat-message-user");
       if (userMessages.length > 0 && spacer && isLoading) {
-        const lastUserMessage = userMessages[userMessages.length - 1] as HTMLElement;
+        const lastUserMessage = userMessages[
+          userMessages.length - 1
+        ] as HTMLElement;
         const containerRect = chatArea.getBoundingClientRect();
         const targetRect = lastUserMessage.getBoundingClientRect();
-        const scrollOffset = targetRect.top - containerRect.top + chatArea.scrollTop;
+        const scrollOffset =
+          targetRect.top - containerRect.top + chatArea.scrollTop;
 
         const currentSpacerHeight = spacer.offsetHeight || 0;
-        const scrollHeightWithoutSpacer = chatArea.scrollHeight - currentSpacerHeight;
+        const scrollHeightWithoutSpacer =
+          chatArea.scrollHeight - currentSpacerHeight;
         const requiredSpacerHeight = Math.max(
           0,
-          scrollOffset + chatArea.clientHeight - scrollHeightWithoutSpacer
+          scrollOffset + chatArea.clientHeight - scrollHeightWithoutSpacer,
         );
         spacer.style.height = `${requiredSpacerHeight}px`;
       }
@@ -320,7 +340,9 @@ export const useChat = () => {
   }, [currentRoom.messages, isLoading]);
 
   const createNewRoom = () => {
-    const emptyRoom = rooms.find((room) => room.messages.length === 0 && room.service === activeService);
+    const emptyRoom = rooms.find(
+      (room) => room.messages.length === 0 && room.service === activeService,
+    );
     if (emptyRoom) {
       setCurrentRoomId(emptyRoom.id);
       return;
@@ -341,8 +363,12 @@ export const useChat = () => {
     } else {
       setRooms(updatedRooms);
       if (currentRoomId === id) {
-        const sameServiceRoom = updatedRooms.find((room) => room.service === activeService);
-        setCurrentRoomId(sameServiceRoom ? sameServiceRoom.id : updatedRooms[0].id);
+        const sameServiceRoom = updatedRooms.find(
+          (room) => room.service === activeService,
+        );
+        setCurrentRoomId(
+          sameServiceRoom ? sameServiceRoom.id : updatedRooms[0].id,
+        );
       }
     }
   };
@@ -354,7 +380,7 @@ export const useChat = () => {
   };
 
   const clearHistory = () => {
-    if (window.confirm("모든 대화 내역을 삭제하시겠습니까?")) {
+    if (window.confirm("모든 대화 내역을 삭제할까요?")) {
       const newRoom = createEmptyRoom(activeService);
       setRooms([newRoom]);
       setCurrentRoomId(newRoom.id);
@@ -473,7 +499,6 @@ export const useChat = () => {
         // ... (classify logic)
       }
 
-
       let baseMessages = [...currentRoom.messages];
 
       if (
@@ -515,7 +540,6 @@ export const useChat = () => {
             signal: abortControllerRef.current.signal,
           });
 
-
           if (!response.ok) {
             const raw = await response.text().catch(() => "");
             const detail = parseErrorDetail(raw) || response.statusText;
@@ -530,7 +554,10 @@ export const useChat = () => {
             throw new ChatHttpError(response.status, detail);
           }
 
-          const messageId = response.headers.get("X-Message-ID") || response.headers.get("x-message-id") || undefined;
+          const messageId =
+            response.headers.get("X-Message-ID") ||
+            response.headers.get("x-message-id") ||
+            undefined;
 
           const reader = response.body?.getReader();
           if (!reader) {
@@ -583,7 +610,12 @@ export const useChat = () => {
             BUTTON_MAP,
           );
 
-          updateAiMessage(finalMessage.content, true, finalMessage.buttons, messageId);
+          updateAiMessage(
+            finalMessage.content,
+            true,
+            finalMessage.buttons,
+            messageId,
+          );
           return;
         } catch (error) {
           if (isAbortError(error)) {
@@ -649,7 +681,9 @@ export const useChat = () => {
     }
   };
 
-  const [closedTooltipRooms, setClosedTooltipRooms] = useState<Record<string, boolean>>({});
+  const [closedTooltipRooms, setClosedTooltipRooms] = useState<
+    Record<string, boolean>
+  >({});
 
   const isFeedbackTooltipClosed = Boolean(closedTooltipRooms[currentRoomId]);
 
@@ -688,9 +722,7 @@ export const useChat = () => {
           return {
             ...room,
             messages: room.messages.map((msg) =>
-              msg.id === clientMsgId
-                ? { ...msg, feedbackScore: score }
-                : msg,
+              msg.id === clientMsgId ? { ...msg, feedbackScore: score } : msg,
             ),
           };
         }),
